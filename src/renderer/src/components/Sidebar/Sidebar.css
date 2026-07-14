@@ -1,0 +1,112 @@
+.sidebar {
+  border-top: none;
+  border-bottom: none;
+  border-left: none;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.sidebar-inner {
+  width: 240px;
+  height: 100%;
+  overflow-y: auto;
+  padding: 12px 10px 20px;
+}
+
+.sb-section {
+  margin-bottom: 14px;
+}
+
+.sb-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px;
+  margin-bottom: 4px;
+}
+
+.sb-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 0;
+}
+
+.sb-chevron {
+  display: inline-block;
+  transition: transform 0.18s;
+  font-size: 9px;
+}
+.sb-chevron.open {
+  transform: rotate(90deg);
+}
+
+.sb-add {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  color: var(--text-3);
+  font-size: 14px;
+  line-height: 1;
+}
+.sb-add:hover {
+  background: var(--hover);
+  color: var(--text-1);
+}
+
+.sb-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 7px;
+  font-size: 13px;
+  color: var(--text-2);
+  text-align: left;
+  transition: background 0.12s, color 0.12s;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.sb-item:hover {
+  background: var(--hover);
+  color: var(--text-1);
+}
+.sb-item.active {
+  background: var(--accent-soft);
+  color: var(--text-1);
+}
+
+.sb-icon {
+  font-size: 13px;
+  width: 18px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.sb-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sb-count {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.sb-nested {
+  font-size: 12.5px;
+}
+
+.sb-empty {
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--text-3);
+  font-style: italic;
+}

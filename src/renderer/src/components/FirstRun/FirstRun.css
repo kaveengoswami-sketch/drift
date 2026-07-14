@@ -1,0 +1,71 @@
+.firstrun {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.firstrun-card {
+  width: 460px;
+  border-radius: 20px;
+  padding: 44px 40px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+
+.firstrun-logo {
+  font-size: 52px;
+  margin-bottom: 14px;
+}
+
+.firstrun-card h1 {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 10px;
+}
+
+.firstrun-card p {
+  font-size: 13.5px;
+  color: var(--text-2);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.firstrun-cta {
+  background: var(--accent);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 11px 26px;
+  border-radius: 10px;
+  transition: transform 0.15s, filter 0.15s;
+}
+.firstrun-cta:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+.firstrun-cta:disabled {
+  opacity: 0.6;
+}
+
+.firstrun-progress {
+  margin-top: 16px;
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+
+.firstrun-tips {
+  margin-top: 26px;
+  font-size: 11.5px;
+  color: var(--text-3);
+}
+
+.firstrun-tips kbd {
+  background: var(--hover);
+  border: 1px solid var(--glass-border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: inherit;
+  font-size: 10.5px;
+}

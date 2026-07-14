@@ -1,0 +1,88 @@
+.editor {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  background: rgba(5, 5, 8, 0.94);
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.editor-canvas-wrap {
+  position: relative;
+}
+
+.editor-canvas-wrap canvas {
+  display: block;
+  border-radius: 4px;
+  cursor: crosshair;
+  box-shadow: 0 12px 60px rgba(0, 0, 0, 0.6);
+}
+
+.editor-crop {
+  position: absolute;
+  border: 1.5px solid #fff;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+}
+
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
+  padding: 12px 20px;
+  margin: 0 auto 20px;
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+
+.editor-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.editor-group .icon-btn {
+  font-size: 17px;
+}
+
+.editor-ratio {
+  padding: 5px 11px;
+  border-radius: 7px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.editor-ratio:hover {
+  background: var(--hover);
+}
+.editor-ratio.active {
+  background: var(--accent-soft);
+  color: var(--text-1);
+}
+
+.editor-btn {
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-1);
+  background: var(--hover);
+}
+.editor-btn:hover {
+  background: var(--active);
+}
+.editor-btn.primary {
+  background: var(--accent);
+  color: #fff;
+}
+.editor-btn.primary:disabled {
+  opacity: 0.6;
+}

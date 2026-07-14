@@ -1,0 +1,107 @@
+.info-panel {
+  width: 290px;
+  flex-shrink: 0;
+  height: 100%;
+  overflow-y: auto;
+  padding: 18px 16px;
+  border-top: none;
+  border-bottom: none;
+  border-right: none;
+}
+
+.ip-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
+.ip-subtitle {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin: 16px 0 8px;
+}
+
+.ip-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+
+.ip-key {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.ip-val {
+  font-size: 12.5px;
+  color: var(--text-1);
+  word-break: break-all;
+  text-align: left;
+}
+
+.ip-link {
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0;
+}
+.ip-link:hover {
+  text-decoration: underline;
+}
+
+.ip-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ip-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--accent-soft);
+  color: var(--text-1);
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 12px;
+}
+.ip-tag button {
+  font-size: 9px;
+  color: var(--text-2);
+}
+.ip-tag button:hover {
+  color: var(--text-1);
+}
+
+.ip-tag-input {
+  position: relative;
+  margin-top: 8px;
+}
+.ip-tag-input input {
+  width: 100%;
+}
+
+.ip-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  border-radius: 8px;
+  overflow: hidden;
+  z-index: 10;
+  box-shadow: var(--shadow);
+}
+.ip-suggestions button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 7px 12px;
+  font-size: 12.5px;
+}
+.ip-suggestions button:hover {
+  background: var(--hover);
+}

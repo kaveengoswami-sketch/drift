@@ -1,0 +1,151 @@
+/* context menu */
+.ctx-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+}
+
+.ctx-menu {
+  position: fixed;
+  min-width: 190px;
+  border-radius: 10px;
+  padding: 5px;
+  box-shadow: var(--shadow);
+  z-index: 301;
+}
+
+.ctx-item-wrap {
+  position: relative;
+}
+
+.ctx-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  color: var(--text-1);
+  text-align: left;
+  white-space: nowrap;
+}
+.ctx-item:hover {
+  background: var(--accent);
+  color: #fff;
+}
+.ctx-item.danger {
+  color: #ff6b6b;
+}
+.ctx-item.danger:hover {
+  background: #c0392b;
+  color: #fff;
+}
+
+.ctx-sep {
+  height: 1px;
+  background: var(--glass-border);
+  margin: 4px 8px;
+}
+
+.ctx-arrow {
+  font-size: 10px;
+  color: var(--text-3);
+  margin-left: 18px;
+}
+
+.ctx-submenu {
+  position: absolute;
+  left: 100%;
+  top: -5px;
+  min-width: 160px;
+  max-height: 300px;
+  overflow-y: auto;
+  border-radius: 10px;
+  padding: 5px;
+  box-shadow: var(--shadow);
+}
+
+.ctx-empty {
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--text-3);
+  font-style: italic;
+}
+
+/* confirm dialog */
+.dlg-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dlg {
+  width: 360px;
+  border-radius: 14px;
+  padding: 22px;
+  box-shadow: var(--shadow);
+}
+
+.dlg-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.dlg-message {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.5;
+  margin-bottom: 18px;
+}
+
+.dlg-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.editor-btn.primary.danger {
+  background: #d64545;
+}
+
+/* scan banner */
+.scan-banner {
+  position: fixed;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 18px;
+  border-radius: 12px;
+  font-size: 12.5px;
+  color: var(--text-2);
+  box-shadow: var(--shadow);
+  z-index: 90;
+  max-width: 70vw;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.scan-spinner {
+  width: 13px;
+  height: 13px;
+  border: 2px solid var(--glass-border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
