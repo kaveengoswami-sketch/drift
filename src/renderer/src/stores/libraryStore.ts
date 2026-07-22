@@ -23,6 +23,7 @@ interface LibraryState {
   settings: Settings
   scanProgress: ScanProgress | null
   scrollPositions: Map<string, number>
+  initialized: boolean
 
   setQuery: (q: LibraryQuery) => void
   refresh: () => Promise<void>
@@ -38,7 +39,7 @@ interface LibraryState {
 }
 
 export function queryKey(q: LibraryQuery): string {
-  return `${q.view}:${q.albumId ?? ''}:${q.folderId ?? ''}:${q.folderPathPrefix ?? ''}:${q.tag ?? ''}`
+  return `${q.view}:${q.albumId ?? ''}:${q.folderId ?? ''}:${q.folderPathPrefix ?? ''}:${q.tag ?? ''}:${q.search ?? ''}`
 }
 
 export const useLibrary = create<LibraryState>((set, get) => ({
@@ -55,6 +56,7 @@ export const useLibrary = create<LibraryState>((set, get) => ({
   settings: DEFAULT_SETTINGS,
   scanProgress: null,
   scrollPositions: new Map(),
+  initialized: false,
 
   setQuery: (q) => {
     set({ query: q, selection: new Set(), lastSelectedIndex: null, viewerIndex: null })
@@ -63,7 +65,21 @@ export const useLibrary = create<LibraryState>((set, get) => ({
 
   refresh: async () => {
     const photos = await window.drift.queryPhotos(get().query)
-    set({ photos })
+    // `viewerIndex` and `lastSelectedIndex` are raw indices into `photos`, and a
+    // background scan replaces this array underneath them — newly discovered
+    // photos get inserted mid-list, so an index silently starts pointing at a
+    // different photo or past the end. That's why clicking a photo could open
+    // nothing: the viewer dereferenced a stale index and rendered empty.
+    // Re-resolve both by photo id; null means it's no longer in this view.
+    const { viewerIndex, lastSelectedIndex, photos: prev } = get()
+    const remap = (i: number | null): number | null => {
+      if (i === null) return null
+      const id = prev[i]?.id
+      if (id === undefined) return null
+      const found = photos.findIndex((p) => p.id === id)
+      return found >= 0 ? found : null
+    }
+    set({ photos, viewerIndex: remap(viewerIndex), lastSelectedIndex: remap(lastSelectedIndex) })
   },
 
   refreshSidebar: async () => {
@@ -87,7 +103,8 @@ export const useLibrary = create<LibraryState>((set, get) => ({
       else next.add(id)
     } else if (mode === 'range' && lastSelectedIndex !== null) {
       const [a, b] = [Math.min(lastSelectedIndex, index), Math.max(lastSelectedIndex, index)]
-      for (let i = a; i <= b; i++) next.add(photos[i].id)
+      // guard the deref: a range anchor can outlive the row it pointed at
+      for (let i = a; i <= b; i++) if (photos[i]) next.add(photos[i].id)
     } else {
       next.add(id)
     }
@@ -132,12 +149,19 @@ export const useLibrary = create<LibraryState>((set, get) => ({
   },
 
   saveScroll: (key, top) => {
-    get().scrollPositions.set(key, top)
+    const m = get().scrollPositions
+    m.set(key, top)
+    // cap to 200 entries (LRU-ish: delete the oldest inserted key)
+    if (m.size > 200) m.delete(m.keys().next().value as string)
   }
 }))
 
+let eventsInitialised = false
+
 /** One-time wiring of main-process events into the store */
 export function initLibraryEvents(): void {
+  if (eventsInitialised) return
+  eventsInitialised = true
   window.drift.onScanProgress((p) => useLibrary.setState({ scanProgress: p }))
   let refreshTimer: ReturnType<typeof setTimeout> | undefined
   window.drift.onLibraryChanged(() => {
@@ -147,11 +171,15 @@ export function initLibraryEvents(): void {
       useLibrary.getState().refreshSidebar()
     }, 150)
   })
-  window.drift.getSettings().then((settings) => {
-    useLibrary.setState({ settings })
+  Promise.all([
+    window.drift.getSettings(),
+    useLibrary.getState().refresh(),
+    useLibrary.getState().refreshSidebar()
+  ]).then(([settings]) => {
+    useLibrary.setState({ settings, initialized: true })
     document.documentElement.dataset.theme = settings.theme
     document.documentElement.style.setProperty('--accent', settings.accentColor)
+  }).catch(() => {
+    useLibrary.setState({ initialized: true })
   })
-  useLibrary.getState().refresh()
-  useLibrary.getState().refreshSidebar()
 }

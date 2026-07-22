@@ -21,7 +21,11 @@ export function onThumbReady(id: number, cb: () => void): () => void {
   }
 }
 
+let thumbEventsInitialised = false
+
 export function initThumbEvents(): void {
+  if (thumbEventsInitialised) return
+  thumbEventsInitialised = true
   window.drift.onThumbDone((id) => {
     subs.get(id)?.forEach((cb) => cb())
   })

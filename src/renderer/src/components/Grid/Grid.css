@@ -1,8 +1,16 @@
+/* -----------------------------------------------------------------------
+   Grid layout
+   GAP = 2px (Apple All Photos tight grid)
+   PAD = 16px (--grid-pad)
+   ----------------------------------------------------------------------- */
+
 .grid-scroll {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
   position: relative;
+  /* Ensure it can shrink below its content width inside the flex column */
+  min-width: 0;
 }
 
 .grid-canvas {
@@ -10,51 +18,90 @@
   width: 100%;
 }
 
+/* -----------------------------------------------------------------------
+   Date section headers — sticky, spec section 5
+   ----------------------------------------------------------------------- */
+
 .grid-header {
-  position: absolute;
+  position: sticky;
   top: 0;
   left: 0;
   right: 0;
-  height: 52px;
-  padding: 18px 16px 8px;
+  /* Height is set inline (variable per layout) — keep a sensible default */
+  z-index: 10;
+  background: var(--bg-content, #1c1c1e);
+  /* Slight backdrop blur so the header floats above the tiles legibly */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 20px var(--grid-pad, 16px) 8px;
   display: flex;
-  align-items: baseline;
-  gap: 10px;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 2px;
   will-change: transform;
+  /* Used in the virtual-scroller: the header is absolutely positioned inside
+     .grid-canvas and translated by the layout engine. We re-apply sticky
+     ONLY for the header itself; the translate keeps it in the right band. */
+  position: absolute;
 }
 
 .grid-header-label {
-  font-size: 17px;
-  font-weight: 700;
+  font-size: var(--fs-header, 20px);
+  font-weight: 600;
+  color: var(--text-primary, rgba(255,255,255,0.92));
   letter-spacing: -0.01em;
+  line-height: 1.2;
 }
 
 .grid-header-sub {
-  font-size: 12px;
-  color: var(--text-3);
+  font-size: var(--fs-body, 13px);
+  color: var(--text-secondary, rgba(255,255,255,0.55));
+  line-height: 1.4;
 }
+
+/* -----------------------------------------------------------------------
+   Photo tile — Apple Photos: square, no radius, flat, tight gap
+   ----------------------------------------------------------------------- */
 
 .tile {
   position: absolute;
   top: 0;
   left: 0;
-  border-radius: var(--radius);
+  /* No border-radius in square mode — Apple's grid is hard-edged.
+     Aspect mode also uses 0 per spec section 5. */
+  border-radius: 0;
   overflow: hidden;
-  background: var(--bg-2);
+  background: var(--bg-elevated, #303032);
   cursor: pointer;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  /* No drop-shadow — Apple tiles are completely flat */
   will-change: transform;
+  /* Isolate stacking context so z-index on selected/hover works */
+  isolation: isolate;
 }
 
-.tile:hover {
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+/* Hover: a subtle brightness lift only. No scale, no shadow. 120ms per spec. */
+.tile:hover .tile-img {
+  filter: brightness(1.08);
+  transition: filter 120ms ease;
+}
+
+/* Ensure the transition is present on the non-hovered state too so it
+   eases both ways. */
+.tile .tile-img {
+  transition: filter 120ms ease;
+}
+
+/* Selected tile: 3px accent outline drawn inside (outline-offset: -3px)
+   per design spec section 5. No box-shadow on the outline itself. */
+.tile.selected {
+  outline: 3px solid var(--accent, #0A84FF);
+  outline-offset: -3px;
   z-index: 2;
 }
 
-.tile.selected {
-  outline: 2.5px solid var(--accent);
-  outline-offset: -2.5px;
-}
+/* -----------------------------------------------------------------------
+   Tile image
+   ----------------------------------------------------------------------- */
 
 .tile-img {
   width: 100%;
@@ -62,14 +109,9 @@
   object-fit: cover;
   display: block;
   pointer-events: none;
-  transition: transform 0.18s ease-out;
 }
 
-/* hover scale lives on the img so it can't fight the tile's positioning transform */
-.tile:hover .tile-img {
-  transform: scale(1.045);
-}
-
+/* Placeholder shown while the thumbnail is being generated / failed */
 .tile-placeholder {
   width: 100%;
   height: 100%;
@@ -78,8 +120,14 @@
   justify-content: center;
   font-size: 28px;
   opacity: 0.35;
+  background: var(--bg-elevated, #303032);
 }
 
+/* -----------------------------------------------------------------------
+   Tile overlays
+   ----------------------------------------------------------------------- */
+
+/* Hidden 1-pixel video element used to grab a mid-frame thumbnail */
 .tile-video-capture {
   position: absolute;
   width: 1px;
@@ -88,6 +136,7 @@
   pointer-events: none;
 }
 
+/* Video duration badge — bottom-right, frosted */
 .tile-video-badge {
   position: absolute;
   bottom: 6px;
@@ -102,48 +151,71 @@
   font-size: 10.5px;
   font-weight: 600;
   backdrop-filter: blur(6px);
+  pointer-events: none;
 }
 
+/* Favorite heart badge — bottom-left */
 .tile-fav {
   position: absolute;
   bottom: 6px;
   left: 6px;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+  pointer-events: none;
 }
 
+/* Selection checkmark badge — TOP-RIGHT per design spec section 5:
+   "a checkmark badge in the top-right" */
 .tile-check {
   position: absolute;
   top: 6px;
-  left: 6px;
+  right: 6px;
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--accent);
+  background: var(--accent, #0A84FF);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  /* Spec: box-shadow: 0 0 0 1.5px rgba(0,0,0,0.25) */
+  box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
 }
 
+/* Hover-reveal heart button — top-left, fades in on hover */
 .tile-heart {
   position: absolute;
   top: 6px;
-  right: 6px;
+  left: 6px;
   opacity: 0;
-  transition: opacity 0.15s;
+  transition: opacity 120ms ease;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .tile:hover .tile-heart {
   opacity: 1;
 }
 
+/* -----------------------------------------------------------------------
+   Rubber-band drag selection rectangle
+   ----------------------------------------------------------------------- */
+
 .rubber-band {
   position: absolute;
-  border: 1px solid var(--accent);
-  background: var(--accent-soft);
+  border: 1px solid var(--accent, #0A84FF);
+  background: rgba(10, 132, 255, 0.12);
   pointer-events: none;
   z-index: 5;
 }
+
+/* -----------------------------------------------------------------------
+   Empty state
+   ----------------------------------------------------------------------- */
 
 .grid-empty {
   flex: 1;
@@ -152,18 +224,19 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  color: var(--text-2);
+  color: var(--text-secondary, rgba(255,255,255,0.55));
 }
 .grid-empty-icon {
   font-size: 42px;
   margin-bottom: 4px;
+  opacity: 0.6;
 }
 .grid-empty-title {
   font-size: 16px;
   font-weight: 600;
-  color: var(--text-1);
+  color: var(--text-primary, rgba(255,255,255,0.92));
 }
 .grid-empty-sub {
   font-size: 13px;
-  color: var(--text-3);
+  color: var(--text-secondary, rgba(255,255,255,0.55));
 }

@@ -78,7 +78,8 @@ export default function Slideshow(): JSX.Element {
           className="icon-btn"
           onClick={() => {
             setSlideshow(false)
-            setViewerIndex(index)
+            const safeIndex = Math.min(index, photos.length - 1)
+            setViewerIndex(safeIndex >= 0 ? safeIndex : null)
           }}
           title="Exit (Esc)"
         >

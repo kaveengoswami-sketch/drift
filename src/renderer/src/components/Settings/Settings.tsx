@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useLibrary } from '@/stores/libraryStore'
 import { useUI } from '@/stores/uiStore'
+import { useModalFocus } from '@/lib/useModalFocus'
 import './Settings.css'
 
 const ACCENTS = ['#6c8cff', '#a86cff', '#ff6c9d', '#ff9d6c', '#6cd9a8', '#4db8e8']
@@ -24,6 +25,8 @@ export default function Settings(): JSX.Element {
     window.drift.appVersion().then(setVersion)
   }, [])
 
+  const dlgRef = useModalFocus<HTMLDivElement>()
+
   const setTheme = (theme: 'dark' | 'light'): void => {
     setSettings({ theme })
     document.documentElement.dataset.theme = theme
@@ -39,8 +42,12 @@ export default function Settings(): JSX.Element {
   }
 
   return (
-    <div className="dlg-backdrop" onClick={() => setSettingsOpen(false)}>
+    <div className="dlg-backdrop" role="presentation" onClick={() => setSettingsOpen(false)}>
       <motion.div
+        ref={dlgRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-title"
         className="settings glass"
         initial={{ opacity: 0, scale: 0.94, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -48,8 +55,8 @@ export default function Settings(): JSX.Element {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="settings-header">
-          <h2>Settings</h2>
-          <button className="icon-btn" onClick={() => setSettingsOpen(false)}>✕</button>
+          <h2 id="settings-title">Settings</h2>
+          <button autoFocus className="icon-btn" onClick={() => setSettingsOpen(false)}>✕</button>
         </div>
 
         <div className="settings-body">

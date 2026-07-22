@@ -24,6 +24,7 @@ const api = {
   ensureThumb: (id: number, sizes: string[]) => ipcRenderer.invoke('thumb:ensure', id, sizes),
   saveVideoFrame: (photoId: number, hash: string, dataUrl: string, duration?: number) =>
     ipcRenderer.invoke('thumb:saveVideoFrame', photoId, hash, dataUrl, duration),
+  thumbViewport: (ids: number[], px: number) => ipcRenderer.send('thumb:viewport', ids, px),
 
   // albums
   listAlbums: () => ipcRenderer.invoke('albums:list'),

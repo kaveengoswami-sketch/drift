@@ -1,0 +1,200 @@
+/* Toolbar -- unified titlebar + controls, 52px, macOS Photos style */
+
+.toolbar {
+  height: var(--toolbar-h);
+  background: var(--bg-toolbar);
+  border-bottom: 1px solid var(--separator);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0 0 8px;
+  gap: 8px;
+  flex-shrink: 0;
+  z-index: 50;
+  width: 100%;
+  box-sizing: border-box;
+  /* Entire bar is a drag region */
+  -webkit-app-region: drag;
+}
+
+/* ---- groups ---- */
+.toolbar-left,
+.toolbar-center,
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  /* Interactive children must un-set drag */
+  -webkit-app-region: no-drag;
+}
+
+.toolbar-left {
+  flex: 0 0 auto;
+}
+
+.toolbar-center {
+  flex: 1;
+  justify-content: center;
+  min-width: 0;
+}
+
+.toolbar-right {
+  flex: 0 0 auto;
+  gap: 6px;
+  margin-left: auto;
+}
+
+/* ---- toolbar icon buttons (overrides icon-btn from global) ---- */
+.tb-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  color: var(--text-secondary);
+  transition:
+    background var(--dur-fast) var(--ease-spatial),
+    color var(--dur-fast) var(--ease-spatial);
+}
+.tb-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.tb-btn.active {
+  color: var(--accent);
+  background: var(--bg-active);
+}
+
+/* ---- zoom slider ---- */
+.tb-zoom-slider {
+  width: 120px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--border-strong);
+  border-radius: var(--r-pill);
+  outline: none;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  -webkit-app-region: no-drag;
+}
+.tb-zoom-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--text-primary);
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-spatial);
+}
+.tb-zoom-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+.tb-zoom-slider:focus {
+  box-shadow: none;
+}
+
+/* ---- segmented group-by pill ---- */
+.tb-segments {
+  display: flex;
+  align-items: center;
+  background: rgba(255,255,255,0.08);
+  border-radius: var(--r-pill);
+  padding: 2px;
+  gap: 0;
+  -webkit-app-region: no-drag;
+}
+
+.tb-segment {
+  font-size: var(--fs-body);
+  font-family: var(--font);
+  padding: 4px 14px;
+  border-radius: var(--r-pill);
+  color: var(--text-secondary);
+  transition:
+    background var(--dur-fast) var(--ease-spatial),
+    color var(--dur-fast) var(--ease-spatial),
+    box-shadow var(--dur-fast) var(--ease-spatial);
+  white-space: nowrap;
+  -webkit-app-region: no-drag;
+}
+.tb-segment:hover {
+  color: var(--text-primary);
+}
+.tb-segment.selected {
+  background: rgba(255,255,255,0.18);
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.35);
+}
+
+/* ---- search field ---- */
+.tb-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  -webkit-app-region: no-drag;
+}
+.tb-search-icon {
+  position: absolute;
+  left: 8px;
+  color: var(--text-tertiary);
+  display: flex;
+  pointer-events: none;
+}
+.tb-search-input {
+  width: 180px;
+  height: 26px;
+  background: var(--bg-hover);
+  border: 1px solid var(--separator);
+  border-radius: var(--r-pill);
+  color: var(--text-primary);
+  font-size: var(--fs-body);
+  padding: 0 10px 0 28px;
+  outline: none;
+  transition: border-color var(--dur-fast) var(--ease-spatial),
+              background var(--dur-fast) var(--ease-spatial);
+  /* remove native clear button styling */
+  -webkit-appearance: none;
+  appearance: none;
+}
+.tb-search-input:focus {
+  border-color: var(--accent);
+  background: var(--bg-active);
+}
+.tb-search-input::placeholder {
+  color: var(--text-tertiary);
+}
+/* hide the native search cancel button */
+.tb-search-input::-webkit-search-cancel-button {
+  display: none;
+}
+
+/* ---- Windows caption buttons ---- */
+.tb-caption-buttons {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  margin-left: 6px;
+  -webkit-app-region: no-drag;
+}
+
+.tb-caption-btn {
+  width: 46px;
+  height: var(--toolbar-h);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  border-radius: 0;
+  transition: background var(--dur-fast) var(--ease-spatial),
+              color var(--dur-fast) var(--ease-spatial);
+  -webkit-app-region: no-drag;
+}
+.tb-caption-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.tb-close:hover {
+  background: #e81123;
+  color: #ffffff;
+}

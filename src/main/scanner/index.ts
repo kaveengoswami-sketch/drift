@@ -25,7 +25,29 @@ function quickHash(filePath: string, size: number, mtimeMs: number): string {
   }
 }
 
-function walk(dir: string, out: string[]): void {
+/**
+ * A scan can outlive the window that started it, and webContents.send() throws
+ * on a destroyed window — which would surface as an unhandled rejection out of
+ * the async scan loop. Every progress message goes through here.
+ */
+function send(win: BrowserWindow, channel: string, payload?: unknown): void {
+  if (win.isDestroyed() || win.webContents.isDestroyed()) return
+  try {
+    win.webContents.send(channel, payload)
+  } catch {
+    // window or render frame went away between the check and the send
+  }
+}
+
+/**
+ * Walks the tree yielding to the event loop periodically. The traversal itself
+ * is sync (readdirSync is markedly faster than the promise API here), but on a
+ * deep library the uninterrupted version stalled the UI for seconds.
+ *
+ * Note Dirent.isDirectory()/isFile() are both false for symlinks, so symlinked
+ * entries are skipped — that also makes symlink loops impossible.
+ */
+async function walk(dir: string, out: string[], counter = { n: 0 }): Promise<void> {
   let entries: fs.Dirent[]
   try {
     entries = fs.readdirSync(dir, { withFileTypes: true })
@@ -37,11 +59,12 @@ function walk(dir: string, out: string[]): void {
     const full = path.join(dir, e.name)
     if (e.isDirectory()) {
       if (e.name === '.drift-trash') continue
-      walk(full, out)
+      await walk(full, out, counter)
     } else if (e.isFile()) {
       const ext = path.extname(e.name).toLowerCase()
       if (IMAGE_EXTS.has(ext) || VIDEO_EXTS.has(ext)) out.push(full)
     }
+    if (++counter.n % 500 === 0) await new Promise((r) => setImmediate(r))
   }
 }
 
@@ -109,13 +132,13 @@ export async function scanAllFolders(win: BrowserWindow): Promise<void> {
     const folders = db.listFolders()
     for (const folder of folders) {
       const files: string[] = []
-      walk(folder.path, files)
+      await walk(folder.path, files)
       const existing = db.getIndexForFolder(folder.id)
       const seen = new Set<string>()
       const toUpsert: db.PhotoUpsert[] = []
       let processed = 0
 
-      win.webContents.send('scan:progress', { phase: 'scanning', scanned: 0, total: files.length })
+      send(win, 'scan:progress', { phase: 'scanning', scanned: 0, total: files.length })
 
       for (const filePath of files) {
         seen.add(filePath)
@@ -148,7 +171,7 @@ export async function scanAllFolders(win: BrowserWindow): Promise<void> {
         })
         if (toUpsert.length >= 200) {
           db.upsertPhotos(toUpsert.splice(0))
-          win.webContents.send('scan:progress', { phase: 'scanning', scanned: processed, total: files.length, currentFile: path.basename(filePath) })
+          send(win, 'scan:progress', { phase: 'scanning', scanned: processed, total: files.length, currentFile: path.basename(filePath) })
         }
       }
       if (toUpsert.length) db.upsertPhotos(toUpsert)
@@ -157,11 +180,11 @@ export async function scanAllFolders(win: BrowserWindow): Promise<void> {
       const gone = [...existing.keys()].filter((p) => !seen.has(p))
       if (gone.length) db.deletePhotosByPaths(gone)
 
-      win.webContents.send('scan:progress', { phase: 'scanning', scanned: files.length, total: files.length })
+      send(win, 'scan:progress', { phase: 'scanning', scanned: files.length, total: files.length })
     }
 
-    win.webContents.send('scan:progress', { phase: 'done', scanned: 0, total: 0 })
-    win.webContents.send('library:changed')
+    send(win, 'scan:progress', { phase: 'done', scanned: 0, total: 0 })
+    send(win, 'library:changed')
 
     // queue thumbnail generation for anything missing thumbs
     enqueueThumbnails(win)
@@ -176,14 +199,20 @@ export async function scanAllFolders(win: BrowserWindow): Promise<void> {
 function purgeExpiredTrash(): void {
   const settings = db.getSettings()
   if (!settings.trashDays || settings.trashDays <= 0) return
+  // Drop the files first, then retire all their rows in one transaction — a
+  // row-at-a-time purge interrupted partway leaves rows pointing at files that
+  // no longer exist, and trashed rows are skipped by the scan's reconciliation
+  // pass so they'd never be cleaned up.
+  const purged: number[] = []
   for (const p of db.getExpiredTrash(settings.trashDays)) {
     try {
       fs.rmSync(p.path, { force: true })
+      purged.push(p.id)
     } catch {
-      // file already gone
+      // still locked — leave the row and retry on the next scan
     }
-    db.deletePhotoRow(p.id)
   }
+  db.deletePhotoRows(purged)
 }
 
 export { RAW_EXTS }

@@ -59,6 +59,7 @@ export interface LibraryQuery {
   folderId?: number
   folderPathPrefix?: string
   tag?: string
+  search?: string
 }
 
 export type ViewKey =
@@ -97,7 +98,17 @@ export interface PhotoMeta {
   exif?: Record<string, unknown>
 }
 
+/** @deprecated Use THUMB_LADDER / ThumbPx instead. */
 export type ThumbSize = 'small' | 'medium' | 'large'
+
+/** Thumbnail pixel buckets. A bucket IS the long-edge pixel size. */
+export const THUMB_LADDER = [128, 256, 384, 512, 768, 1024, 2048] as const
+export type ThumbPx = (typeof THUMB_LADDER)[number]
+
+/** Smallest bucket that covers `needed` device pixels. */
+export function pickBucket(needed: number): ThumbPx {
+  return THUMB_LADDER.find((b) => b >= needed) ?? THUMB_LADDER[THUMB_LADDER.length - 1]
+}
 
 export const IMAGE_EXTS = new Set([
   '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tiff', '.tif', '.svg',

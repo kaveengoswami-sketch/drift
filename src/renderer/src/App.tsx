@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { useLibrary } from './stores/libraryStore'
 import { useUI } from './stores/uiStore'
-import TitleBar from './components/TitleBar/TitleBar'
+import Toolbar from './components/Toolbar/Toolbar'
 import Sidebar from './components/Sidebar/Sidebar'
 import Grid from './components/Grid/Grid'
 import PhotoView from './components/PhotoView/PhotoView'
@@ -15,11 +15,19 @@ import ScanBanner from './components/common/ScanBanner'
 import './App.css'
 
 export default function App(): JSX.Element {
-  const { settings, folders, viewerIndex, photos, setViewerIndex, slideshow, setSlideshow, toggleFavorite, selection, selectAll, clearSelection } =
-    useLibrary()
-  const ui = useUI()
+  const settings = useLibrary((s) => s.settings)
+  const folders = useLibrary((s) => s.folders)
+  const initialized = useLibrary((s) => s.initialized)
+  const viewerIndex = useLibrary((s) => s.viewerIndex)
+  const photos = useLibrary((s) => s.photos)
+  const slideshow = useLibrary((s) => s.slideshow)
+  const toggleFavorite = useLibrary((s) => s.toggleFavorite)
+  const selectAll = useLibrary((s) => s.selectAll)
+  const settingsOpen = useUI((s) => s.settingsOpen)
+  const contextMenu = useUI((s) => s.contextMenu)
+  const confirm = useUI((s) => s.confirm)
 
-  const needsFirstRun = !settings.firstRunComplete && folders.length === 0
+  const needsFirstRun = initialized && !settings.firstRunComplete && folders.length === 0
 
   // global keyboard shortcuts
   useEffect(() => {
@@ -70,6 +78,7 @@ export default function App(): JSX.Element {
         return
       }
       if (e.key.toLowerCase() === 'f' && !e.ctrlKey) {
+        if (uiState.contextMenu || uiState.confirm) return
         toggleFavorite()
         return
       }
@@ -109,9 +118,10 @@ export default function App(): JSX.Element {
     return () => window.removeEventListener('keydown', onKey)
   }, [selectAll, toggleFavorite])
 
+
   return (
     <div className={`app ${settings.animationsEnabled ? '' : 'no-anim'}`}>
-      <TitleBar />
+      <Toolbar />
       <div className="app-body">
         {!needsFirstRun && <Sidebar />}
         <main className="app-main">
@@ -125,9 +135,9 @@ export default function App(): JSX.Element {
         )}
       </AnimatePresence>
       {slideshow && <Slideshow />}
-      {ui.settingsOpen && <Settings />}
-      {ui.contextMenu && <ContextMenu />}
-      {ui.confirm && <ConfirmDialog />}
+      {settingsOpen && <Settings />}
+      {contextMenu && <ContextMenu />}
+      {confirm && <ConfirmDialog />}
     </div>
   )
 }

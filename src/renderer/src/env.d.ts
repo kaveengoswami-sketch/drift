@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import type { Photo, SourceFolder, Album, Settings, ScanProgress, PhotoMeta } from '@shared/types'
+import type { Photo, SourceFolder, Album, Settings, ScanProgress, PhotoMeta, ThumbPx } from '@shared/types'
 
 export interface DriftApi {
   minimize(): void
@@ -18,6 +18,8 @@ export interface DriftApi {
   setFavorite(ids: number[], fav: boolean): Promise<void>
   ensureThumb(id: number, sizes: string[]): Promise<void>
   saveVideoFrame(photoId: number, hash: string, dataUrl: string, duration?: number): Promise<void>
+  /** Fire-and-forget: report currently visible photo ids and the requested pixel bucket. */
+  thumbViewport(ids: number[], px: ThumbPx): void
 
   listAlbums(): Promise<Album[]>
   createAlbum(name: string): Promise<Album>

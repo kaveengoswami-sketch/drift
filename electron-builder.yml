@@ -1,0 +1,39 @@
+appId: com.kaveengoswami.drift
+productName: Drift
+copyright: Copyright © 2026 Kaveen Goswami
+
+directories:
+  output: dist
+  buildResources: build
+
+# Blocklist style (the electron-vite convention): everything ships except the
+# sources and tooling below. An allowlist here would silently drop the
+# production node_modules that sharp needs at runtime.
+files:
+  - '!src/*'
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!electron-builder.yml'
+  - '!{tsconfig.json,tsconfig.*.json}'
+  - '!{README.md,drift_spec.md,CHANGELOG.md}'
+  - '!{.env,.env.*,.npmrc,.gitignore}'
+  - '!**/.vscode/*'
+
+# sharp ships prebuilt binaries under @img/*; they must live outside the asar
+# archive so the loader can dlopen them, and must not be rebuilt from source
+# (no VS build tools on this machine — a rebuild would fail the packaging step).
+asarUnpack:
+  - '**/node_modules/sharp/**'
+  - '**/node_modules/@img/**'
+npmRebuild: false
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  artifactName: ${productName}-${version}-${arch}.${ext}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false

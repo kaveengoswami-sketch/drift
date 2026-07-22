@@ -32,12 +32,15 @@ export default function Editor({ photo, onClose }: { photo: Photo; onClose: () =
 
   // load original
   useEffect(() => {
+    let cancelled = false
     const img = new Image()
     img.onload = () => {
+      if (cancelled) return
       imgRef.current = img
       setLoaded(true)
     }
     img.src = `media://${photo.id}/`
+    return () => { cancelled = true }
   }, [photo.id])
 
   // draw preview

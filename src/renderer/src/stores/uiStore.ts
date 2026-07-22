@@ -16,6 +16,9 @@ interface ConfirmState {
   onConfirm: () => void
 }
 
+/** Target tile edge in CSS px, selected by the toolbar zoom slider. */
+export const ZOOM_LEVELS = [80, 110, 150, 200, 260] as const
+
 interface UIState {
   sidebarCollapsed: boolean
   infoPanelOpen: boolean
@@ -24,6 +27,13 @@ interface UIState {
   editMode: boolean
   contextMenu: { x: number; y: number; items: ContextMenuItem[] } | null
   confirm: ConfirmState | null
+
+  /** Index into ZOOM_LEVELS; default 3 (=200px) */
+  zoom: number
+  /** Square (default) or aspect-ratio preserving layout */
+  aspectMode: 'square' | 'aspect'
+  /** Date grouping granularity */
+  groupBy: 'years' | 'months' | 'days' | 'all'
 
   toggleSidebar: () => void
   toggleInfoPanel: () => void
@@ -34,6 +44,10 @@ interface UIState {
   closeContextMenu: () => void
   askConfirm: (c: ConfirmState) => void
   closeConfirm: () => void
+
+  setZoom: (i: number) => void
+  setAspectMode: (m: 'square' | 'aspect') => void
+  setGroupBy: (g: 'years' | 'months' | 'days' | 'all') => void
 }
 
 export const useUI = create<UIState>((set) => ({
@@ -45,6 +59,10 @@ export const useUI = create<UIState>((set) => ({
   contextMenu: null,
   confirm: null,
 
+  zoom: 3,
+  aspectMode: 'square',
+  groupBy: 'months',
+
   toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
   toggleInfoPanel: () => set((s) => ({ infoPanelOpen: !s.infoPanelOpen })),
   setSettingsOpen: (open) => set({ settingsOpen: open }),
@@ -53,5 +71,9 @@ export const useUI = create<UIState>((set) => ({
   openContextMenu: (x, y, items) => set({ contextMenu: { x, y, items } }),
   closeContextMenu: () => set({ contextMenu: null }),
   askConfirm: (c) => set({ confirm: c }),
-  closeConfirm: () => set({ confirm: null })
+  closeConfirm: () => set({ confirm: null }),
+
+  setZoom: (i) => set({ zoom: i }),
+  setAspectMode: (m) => set({ aspectMode: m }),
+  setGroupBy: (g) => set({ groupBy: g })
 }))

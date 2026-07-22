@@ -86,10 +86,30 @@ export function renamePhoto(photoId: number, newName: string): string | null {
   const finalName = newName.endsWith(ext) ? newName : newName + ext
   const dest = path.join(path.dirname(photo.path), finalName)
   if (fs.existsSync(dest)) return 'A file with that name already exists.'
-  fs.renameSync(photo.path, dest)
+  try {
+    fs.renameSync(photo.path, dest)
+  } catch (e) {
+    // locked by another app, permission denied, read-only volume...
+    return `Could not rename: ${(e as Error).message}`
+  }
   lastOp = { kind: 'rename', items: [{ photoId, from: photo.path, to: dest }] }
   db.updatePhotoPath(photoId, dest, finalName)
   return null
+}
+
+/**
+ * rename() can't cross volumes — moving from C:\ to D:\ throws EXDEV. Fall back
+ * to copy + unlink so the move still happens, and only drop the source once the
+ * copy is safely on disk.
+ */
+function moveFile(from: string, to: string): void {
+  try {
+    fs.renameSync(from, to)
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code !== 'EXDEV') throw e
+    fs.copyFileSync(from, to)
+    fs.unlinkSync(from)
+  }
 }
 
 export function movePhotos(photoIds: number[], destDir: string): void {
@@ -99,7 +119,7 @@ export function movePhotos(photoIds: number[], destDir: string): void {
     if (!photo) continue
     const dest = uniqueDest(destDir, photo.filename)
     try {
-      fs.renameSync(photo.path, dest)
+      moveFile(photo.path, dest)
       db.updatePhotoPath(id, dest, path.basename(dest))
       undo.items.push({ photoId: id, from: photo.path, to: dest })
     } catch (e) {
@@ -127,7 +147,8 @@ export function undoLast(): boolean {
   lastOp = null
   for (const item of op.items) {
     try {
-      fs.renameSync(item.to, item.from)
+      // a move being undone may be crossing volumes back
+      moveFile(item.to, item.from)
       if (op.kind === 'trash') {
         db.markRestored(item.photoId, item.from)
       } else {

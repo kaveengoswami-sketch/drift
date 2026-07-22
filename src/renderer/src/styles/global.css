@@ -1,42 +1,92 @@
-/* Drift design system — glassmorphism, dark-first */
+/* Drift design system -- Apple Photos macOS dark aesthetic */
 
 :root {
-  --accent: #6c8cff;
-  --accent-soft: rgba(108, 140, 255, 0.22);
+  /* ---- surfaces (macOS dark) ---- */
+  --bg-content:      #1c1c1e;
+  --bg-sidebar:      #232325;
+  --bg-toolbar:      #2a2a2c;
+  --bg-elevated:     #303032;
+  --bg-hover:        rgba(255,255,255,0.07);
+  --bg-active:       rgba(255,255,255,0.12);
+  --bg-selected:     rgba(255,255,255,0.14);
 
-  --bg-0: #0d0d11;
-  --bg-1: #131318;
-  --bg-2: #1b1b22;
-  --glass: rgba(24, 24, 32, 0.62);
-  --glass-heavy: rgba(18, 18, 26, 0.82);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --text-1: #f2f2f6;
-  --text-2: #a8a8b4;
-  --text-3: #6d6d7a;
-  --hover: rgba(255, 255, 255, 0.06);
-  --active: rgba(255, 255, 255, 0.1);
-  --shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
-  --radius: 8px;
-  --titlebar-h: 44px;
-  --gradient: radial-gradient(1200px 800px at 15% -10%, rgba(108, 140, 255, 0.10), transparent 60%),
-    radial-gradient(1000px 700px at 95% 110%, rgba(168, 108, 255, 0.07), transparent 60%);
+  /* ---- text ---- */
+  --text-primary:    rgba(255,255,255,0.92);
+  --text-secondary:  rgba(255,255,255,0.55);
+  --text-tertiary:   rgba(255,255,255,0.35);
+
+  /* ---- accent (macOS dark blue) ---- */
+  --accent:          #0A84FF;
+  --accent-hover:    #3D9BFF;
+  --accent-text:     #ffffff;
+
+  /* ---- lines ---- */
+  --separator:       rgba(255,255,255,0.10);
+  --border-strong:   rgba(255,255,255,0.16);
+
+  /* ---- radii ---- */
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 10px;
+  --r-pill: 999px;
+
+  /* ---- typography ---- */
+  --font: "Segoe UI Variable Text", "Segoe UI", -apple-system, system-ui, sans-serif;
+  --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+
+  --fs-caption: 11px;
+  --fs-body:    13px;
+  --fs-title:   15px;
+  --fs-header:  20px;
+  --fs-large:   28px;
+
+  /* ---- metrics ---- */
+  --sidebar-w:  200px;
+  --toolbar-h:  52px;
+  --grid-gap:   2px;
+  --grid-pad:   16px;
+
+  /* ---- legacy aliases kept for components not yet migrated ----
+     Editor, FirstRun, InfoPanel, Settings, PhotoView and Slideshow still
+     reference the pre-redesign token names. These map them onto the new
+     system so those screens keep rendering correctly; without them every
+     colour in those files resolves to nothing and the panels render
+     unstyled. Delete each alias once its consumers are migrated. */
+  --shadow:          0 8px 32px rgba(0,0,0,0.45);
+  --text-1:          var(--text-primary);
+  --text-2:          var(--text-secondary);
+  --text-3:          var(--text-tertiary);
+  --bg-2:            var(--bg-elevated);
+  --hover:           var(--bg-hover);
+  --active:          var(--bg-active);
+  --glass-border:    var(--border-strong);
+  --accent-soft:     rgba(10, 132, 255, 0.25);
 }
 
-:root[data-theme='light'] {
-  --bg-0: #f2f2f5;
-  --bg-1: #e9e9ee;
-  --bg-2: #ffffff;
-  --glass: rgba(255, 255, 255, 0.65);
-  --glass-heavy: rgba(250, 250, 253, 0.85);
-  --glass-border: rgba(0, 0, 0, 0.08);
-  --text-1: #1a1a20;
-  --text-2: #55555f;
-  --text-3: #8e8e99;
-  --hover: rgba(0, 0, 0, 0.05);
-  --active: rgba(0, 0, 0, 0.09);
-  --shadow: 0 8px 32px rgba(0, 0, 0, 0.14);
+/* Light mode token overrides */
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg-content:      #ffffff;
+    --bg-sidebar:      #f5f5f7;
+    --bg-toolbar:      #ececee;
+    --bg-elevated:     #ffffff;
+    --bg-hover:        rgba(0,0,0,0.05);
+    --bg-active:       rgba(0,0,0,0.09);
+    --bg-selected:     rgba(0,0,0,0.08);
+
+    --text-primary:    rgba(0,0,0,0.85);
+    --text-secondary:  rgba(0,0,0,0.55);
+    --text-tertiary:   rgba(0,0,0,0.35);
+
+    --accent:          #007AFF;
+    --accent-hover:    #0066CC;
+
+    --separator:       rgba(0,0,0,0.10);
+    --border-strong:   rgba(0,0,0,0.16);
+  }
 }
 
+/* ---- resets ---- */
 * {
   margin: 0;
   padding: 0;
@@ -51,11 +101,10 @@ body,
 }
 
 body {
-  font-family: 'Inter', 'SF Pro Display', 'Segoe UI Variable', 'Segoe UI', sans-serif;
-  background: var(--bg-0);
-  background-image: var(--gradient);
-  color: var(--text-1);
-  font-size: 13px;
+  font-family: var(--font);
+  background: var(--bg-content);
+  color: var(--text-primary);
+  font-size: var(--fs-body);
   -webkit-font-smoothing: antialiased;
   user-select: none;
 }
@@ -70,61 +119,71 @@ button {
 
 input {
   font-family: inherit;
-  background: var(--bg-2);
-  border: 1px solid var(--glass-border);
-  border-radius: 6px;
-  color: var(--text-1);
+  background: var(--bg-hover);
+  border: 1px solid var(--separator);
+  border-radius: var(--r-md);
+  color: var(--text-primary);
   padding: 6px 10px;
-  font-size: 13px;
+  font-size: var(--fs-body);
   outline: none;
 }
 input:focus {
   border-color: var(--accent);
 }
 
+/* ---- motion ---- */
+:root {
+  --ease-spatial: cubic-bezier(0.32, 0.72, 0, 1);
+  --dur-fast:  120ms;
+  --dur-std:   180ms;
+  --dur-slow:  220ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0.01ms;
+    --dur-std:  0.01ms;
+    --dur-slow: 0.01ms;
+  }
+}
+
+/* ---- scrollbars ---- */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(128, 128, 140, 0.35);
-  border-radius: 5px;
-  border: 2px solid transparent;
-  background-clip: content-box;
+  background: rgba(128,128,140,0.30);
+  border-radius: var(--r-pill);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(128, 128, 140, 0.55);
-  background-clip: content-box;
-  border: 2px solid transparent;
+  background: rgba(128,128,140,0.50);
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.glass {
-  background: var(--glass);
-  backdrop-filter: blur(24px) saturate(1.4);
-  -webkit-backdrop-filter: blur(24px) saturate(1.4);
-  border: 1px solid var(--glass-border);
-}
-
+/* ---- utility classes ---- */
 .icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 7px;
-  color: var(--text-2);
-  transition: background 0.15s, color 0.15s;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  color: var(--text-secondary);
+  transition:
+    background var(--dur-fast) var(--ease-spatial),
+    color var(--dur-fast) var(--ease-spatial);
+  -webkit-app-region: no-drag;
 }
 .icon-btn:hover {
-  background: var(--hover);
-  color: var(--text-1);
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 .icon-btn.active {
   color: var(--accent);
-  background: var(--accent-soft);
+  background: var(--bg-active);
 }
 
 .no-anim * {

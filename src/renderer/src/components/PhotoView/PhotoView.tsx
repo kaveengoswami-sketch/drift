@@ -14,7 +14,7 @@ export default function PhotoView(): JSX.Element {
   const { infoPanelOpen, toggleInfoPanel, filmstripVisible, toggleFilmstrip, editMode, setEditMode, askConfirm } = useUI()
   const index = viewerIndex!
   const photo = photos[index]
-  const isVideo = photo.type === 'video'
+  const isVideo = photo?.type === 'video'
 
   const containerRef = useRef<HTMLDivElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
@@ -33,6 +33,7 @@ export default function PhotoView(): JSX.Element {
 
   // reset on photo change
   useEffect(() => {
+    if (!photo) return
     scale.set(1)
     x.set(0)
     y.set(0)
@@ -40,7 +41,7 @@ export default function PhotoView(): JSX.Element {
     setFullLoaded(false)
     window.drift.ensureThumb(photo.id, ['large'])
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [photo.id])
+  }, [photo?.id])
 
   const navigate = useCallback(
     (dir: 1 | -1): void => {
@@ -130,6 +131,8 @@ export default function PhotoView(): JSX.Element {
     return () => window.removeEventListener('keydown', onKey)
   }, [navigate, zoomTo, resetZoom, scale])
 
+  if (!photo) return <></>
+
   const doDelete = (): void => {
     askConfirm({
       title: 'Move to Recently Deleted?',
@@ -138,7 +141,13 @@ export default function PhotoView(): JSX.Element {
       danger: true,
       onConfirm: async () => {
         await window.drift.trashPhotos([photo.id])
-        if (index >= photos.length - 1) setViewerIndex(photos.length > 1 ? index - 1 : null)
+        // photos hasn't refreshed yet; navigate using pre-delete snapshot.
+        // App.tsx guards photos[viewerIndex] so an OOB index will auto-close
+        // the viewer once refresh settles, but we eagerly navigate for UX.
+        if (index >= photos.length - 1) {
+          setViewerIndex(photos.length > 1 ? index - 1 : null)
+        }
+        // else: stay at same index — the next photo will occupy it after refresh
       }
     })
   }
@@ -182,7 +191,7 @@ export default function PhotoView(): JSX.Element {
               ) : (
                 <>
                   {/* progressive: large thumb underneath, original fades in on load */}
-                  <img className="viewer-media" src={`thumb://large/${photo.hash}`} draggable={false} alt="" style={{ opacity: fullLoaded ? 0 : 1, position: fullLoaded ? 'absolute' : 'static' }} />
+                  <img className="viewer-media" src={`thumb://t/1024/${photo.hash}`} draggable={false} alt="" style={{ opacity: fullLoaded ? 0 : 1, position: fullLoaded ? 'absolute' : 'static' }} />
                   <img
                     ref={imgRef}
                     className="viewer-media"
@@ -273,18 +282,21 @@ export default function PhotoView(): JSX.Element {
           {/* filmstrip */}
           {filmstripVisible && (
             <div className="filmstrip">
-              {photos.slice(Math.max(0, index - 12), Math.min(photos.length, index + 13)).map((p) => {
-                const i = photos.indexOf(p)
-                return (
-                  <button
-                    key={p.id}
-                    className={`filmstrip-thumb ${i === index ? 'current' : ''}`}
-                    onClick={() => setViewerIndex(i)}
-                  >
-                    <img src={`thumb://small/${p.hash}`} alt="" draggable={false} />
-                  </button>
-                )
-              })}
+              {(() => {
+                const start = Math.max(0, index - 12)
+                return photos.slice(start, Math.min(photos.length, index + 13)).map((p, offset) => {
+                  const i = start + offset
+                  return (
+                    <button
+                      key={p.id}
+                      className={`filmstrip-thumb ${i === index ? 'current' : ''}`}
+                      onClick={() => setViewerIndex(i)}
+                    >
+                      <img src={`thumb://t/256/${p.hash}`} alt="" draggable={false} />
+                    </button>
+                  )
+                })
+              })()}
             </div>
           )}
         </div>
