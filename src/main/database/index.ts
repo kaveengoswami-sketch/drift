@@ -32,14 +32,51 @@ function tx(fn: () => void): void {
   }
 }
 
+function hasColumn(d: DatabaseSync, table: string, column: string): boolean {
+  try {
+    const cols = d.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>
+    return cols.some((c) => c.name === column)
+  } catch {
+    return false
+  }
+}
+
+function safeAddColumn(d: DatabaseSync, table: string, column: string, typeDef: string): void {
+  if (!hasColumn(d, table, column)) {
+    try {
+      d.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${typeDef}`)
+    } catch (err: any) {
+      if (err?.message?.includes('duplicate column name')) {
+        return
+      }
+      console.error(`[DB Migration Failure] Failed to add column ${column} to table ${table}:`, err)
+      throw err
+    }
+  }
+}
+
+function executeStatements(d: DatabaseSync, statements: string[]): void {
+  for (const stmt of statements) {
+    const trimmed = stmt.trim()
+    if (!trimmed) continue
+    try {
+      d.exec(trimmed)
+    } catch (err) {
+      console.error(`[DB Migration Failure] Failed executing statement:\n${trimmed}\nError:`, err)
+      throw err
+    }
+  }
+}
+
 function migrate(d: DatabaseSync): void {
-  d.exec(`
-    CREATE TABLE IF NOT EXISTS folders (
+  // 1. Base table definitions
+  const baseTables = [
+    `CREATE TABLE IF NOT EXISTS folders (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       path TEXT NOT NULL UNIQUE,
       name TEXT NOT NULL
-    );
-    CREATE TABLE IF NOT EXISTS photos (
+    );`,
+    `CREATE TABLE IF NOT EXISTS photos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       path TEXT NOT NULL UNIQUE,
       filename TEXT NOT NULL,
@@ -58,48 +95,41 @@ function migrate(d: DatabaseSync): void {
       hash TEXT NOT NULL,
       lastViewedAt INTEGER,
       addedAt INTEGER NOT NULL
-    );
-    CREATE INDEX IF NOT EXISTS idx_photos_dateTaken ON photos(dateTaken DESC);
-    CREATE INDEX IF NOT EXISTS idx_photos_folder ON photos(folderId);
-    CREATE INDEX IF NOT EXISTS idx_photos_trashed ON photos(trashedAt);
-    CREATE INDEX IF NOT EXISTS idx_photos_addedAt ON photos(addedAt DESC);
-    CREATE INDEX IF NOT EXISTS idx_photos_lastViewedAt ON photos(lastViewedAt DESC);
-    CREATE INDEX IF NOT EXISTS idx_photos_path ON photos(path);
-    CREATE INDEX IF NOT EXISTS idx_photos_relPath ON photos(relPath);
-    CREATE TABLE IF NOT EXISTS albums (
+    );`,
+    `CREATE TABLE IF NOT EXISTS albums (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       coverPhotoId INTEGER,
       createdAt INTEGER NOT NULL
-    );
-    CREATE TABLE IF NOT EXISTS album_photos (
+    );`,
+    `CREATE TABLE IF NOT EXISTS album_photos (
       albumId INTEGER NOT NULL REFERENCES albums(id) ON DELETE CASCADE,
       photoId INTEGER NOT NULL REFERENCES photos(id) ON DELETE CASCADE,
       sortOrder INTEGER NOT NULL DEFAULT 0,
       PRIMARY KEY (albumId, photoId)
-    );
-    CREATE TABLE IF NOT EXISTS tags (
+    );`,
+    `CREATE TABLE IF NOT EXISTS tags (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL UNIQUE
-    );
-    CREATE TABLE IF NOT EXISTS photo_tags (
+    );`,
+    `CREATE TABLE IF NOT EXISTS photo_tags (
       photoId INTEGER NOT NULL REFERENCES photos(id) ON DELETE CASCADE,
       tagId INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
       PRIMARY KEY (photoId, tagId)
-    );
-    CREATE TABLE IF NOT EXISTS settings (
+    );`,
+    `CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
-    );
-    CREATE TABLE IF NOT EXISTS people (
+    );`,
+    `CREATE TABLE IF NOT EXISTS people (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT,
       type TEXT CHECK(type IN ('human', 'pet')) DEFAULT 'human',
       coverFaceId INTEGER REFERENCES faces(id) ON DELETE SET NULL,
       isHidden INTEGER DEFAULT 0,
       createdAt INTEGER NOT NULL
-    );
-    CREATE TABLE IF NOT EXISTS faces (
+    );`,
+    `CREATE TABLE IF NOT EXISTS faces (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       photoId INTEGER NOT NULL REFERENCES photos(id) ON DELETE CASCADE,
       personId INTEGER REFERENCES people(id) ON DELETE SET NULL,
@@ -111,22 +141,32 @@ function migrate(d: DatabaseSync): void {
       confidence REAL NOT NULL,
       detectionType TEXT DEFAULT 'human',
       createdAt INTEGER NOT NULL
-    );
-    CREATE INDEX IF NOT EXISTS idx_faces_photoId ON faces(photoId);
-    CREATE INDEX IF NOT EXISTS idx_faces_personId ON faces(personId);
-    CREATE TABLE IF NOT EXISTS photo_face_scanned (
+    );`,
+    `CREATE TABLE IF NOT EXISTS photo_face_scanned (
       photoId INTEGER PRIMARY KEY REFERENCES photos(id) ON DELETE CASCADE,
       scannedAt INTEGER NOT NULL
-    );
-  `)
+    );`
+  ]
+  executeStatements(d, baseTables)
 
-  try {
-    d.exec('ALTER TABLE photos ADD COLUMN relPath TEXT')
-  } catch {
-    // column already exists
-  }
+  // 2. Column additions
+  safeAddColumn(d, 'photos', 'relPath', 'TEXT')
 
-  // Backfill relPath for existing photos using folder paths
+  // 3. Indexes (created after base tables and column migrations)
+  const indexes = [
+    `CREATE INDEX IF NOT EXISTS idx_photos_dateTaken ON photos(dateTaken DESC);`,
+    `CREATE INDEX IF NOT EXISTS idx_photos_folder ON photos(folderId);`,
+    `CREATE INDEX IF NOT EXISTS idx_photos_trashed ON photos(trashedAt);`,
+    `CREATE INDEX IF NOT EXISTS idx_photos_addedAt ON photos(addedAt DESC);`,
+    `CREATE INDEX IF NOT EXISTS idx_photos_lastViewedAt ON photos(lastViewedAt DESC);`,
+    `CREATE INDEX IF NOT EXISTS idx_photos_path ON photos(path);`,
+    `CREATE INDEX IF NOT EXISTS idx_photos_relPath ON photos(relPath);`,
+    `CREATE INDEX IF NOT EXISTS idx_faces_photoId ON faces(photoId);`,
+    `CREATE INDEX IF NOT EXISTS idx_faces_personId ON faces(personId);`
+  ]
+  executeStatements(d, indexes)
+
+  // 4. Backfill relPath for existing photos using folder paths
   const unpopulated = d.prepare(`
     SELECT p.id, p.path, f.path as folderPath
     FROM photos p
