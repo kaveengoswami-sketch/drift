@@ -1,9 +1,18 @@
 import { parentPort } from 'worker_threads'
 import sharp from 'sharp'
-import * as ort from 'onnxruntime-node'
+import type * as OrtType from 'onnxruntime-node'
 
 sharp.cache(false)
 sharp.concurrency(1)
+
+let ortModule: typeof OrtType | null = null
+
+async function getOrt(): Promise<typeof OrtType> {
+  if (!ortModule) {
+    ortModule = await import('onnxruntime-node')
+  }
+  return ortModule
+}
 
 export interface ScanJob {
   photoId: number
@@ -29,12 +38,16 @@ export interface ScanResult {
   error?: string
 }
 
-let detectorSession: ort.InferenceSession | null = null
-let recognizerSession: ort.InferenceSession | null = null
+let detectorSession: OrtType.InferenceSession | null = null
+let recognizerSession: OrtType.InferenceSession | null = null
 let loadedDetectorPath = ''
 let loadedRecognizerPath = ''
 
-async function getSessions(detectorPath: string, recognizerPath: string): Promise<{ detector: ort.InferenceSession; recognizer: ort.InferenceSession }> {
+async function getSessions(
+  detectorPath: string,
+  recognizerPath: string
+): Promise<{ detector: OrtType.InferenceSession; recognizer: OrtType.InferenceSession }> {
+  const ort = await getOrt()
   if (!detectorSession || loadedDetectorPath !== detectorPath) {
     detectorSession = await ort.InferenceSession.create(detectorPath, { executionProviders: ['cpu'] })
     loadedDetectorPath = detectorPath
@@ -63,6 +76,7 @@ function l2Normalize(arr: Float32Array): Float32Array {
 export async function processPhoto(job: ScanJob): Promise<ScanResult> {
   try {
     const { detector, recognizer } = await getSessions(job.detectorPath, job.recognizerPath)
+    const ort = await getOrt()
 
     const metadata = await sharp(job.filePath, { failOn: 'none' }).rotate().metadata()
     const origW = metadata.width || 0

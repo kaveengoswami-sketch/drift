@@ -24,6 +24,7 @@ files:
 asarUnpack:
   - '**/node_modules/sharp/**'
   - '**/node_modules/@img/**'
+  - '**/node_modules/onnxruntime-node/**'
 npmRebuild: false
 
 win:

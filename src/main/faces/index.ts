@@ -6,7 +6,7 @@ import type { FaceScanProgress } from '@shared/types'
 import * as db from '../database'
 import { ensureModels, getModelPaths, hasModels } from './modelManager'
 import { runClustering } from './clustering'
-import { processPhoto, type ScanJob, type ScanResult } from './faceWorker'
+import type { ScanJob, ScanResult } from './faceWorker'
 
 const JOB_GAP_MS = 50 // Pacing delay between face scanning jobs to keep CPU load minimal
 
@@ -56,14 +56,21 @@ function createWorker(): Worker {
     return new Worker(workerFile)
   }
 
-  // Fallback for bundled environment: worker thread using inline eval script calling processPhoto
+  // Fallback for bundled environment: worker thread using inline eval script calling processPhoto dynamically
   const evalScript = `
     const { parentPort } = require('worker_threads');
-    const { processPhoto } = require('./index.js');
-    parentPort.on('message', (job) => {
-      processPhoto(job)
-        .then((res) => parentPort.postMessage(res))
-        .catch((err) => parentPort.postMessage({ photoId: job.photoId, ok: false, faces: [], error: String(err) }));
+    let processPhoto;
+    parentPort.on('message', async (job) => {
+      try {
+        if (!processPhoto) {
+          const fw = require('./faceWorker.js');
+          processPhoto = fw.processPhoto;
+        }
+        const res = await processPhoto(job);
+        parentPort.postMessage(res);
+      } catch (err) {
+        parentPort.postMessage({ photoId: job.photoId, ok: false, faces: [], error: String(err) });
+      }
     });
   `
   return new Worker(evalScript, { eval: true })
@@ -200,4 +207,9 @@ export async function startFaceScan(win: BrowserWindow): Promise<FaceScanProgres
   }
 }
 
-export { hasModels, runClustering, processPhoto }
+export async function processPhoto(job: ScanJob): Promise<ScanResult> {
+  const { processPhoto: fn } = await import('./faceWorker')
+  return fn(job)
+}
+
+export { hasModels, runClustering }

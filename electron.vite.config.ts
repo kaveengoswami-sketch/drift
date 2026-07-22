@@ -14,8 +14,10 @@ export default defineConfig({
       rollupOptions: {
         input: {
           index: resolve(__dirname, 'src/main/index.ts'),
-          thumbWorker: resolve(__dirname, 'src/main/thumbnails/thumbWorker.ts')
-        }
+          thumbWorker: resolve(__dirname, 'src/main/thumbnails/thumbWorker.ts'),
+          faceWorker: resolve(__dirname, 'src/main/faces/faceWorker.ts')
+        },
+        external: ['onnxruntime-node']
       }
     }
   },
