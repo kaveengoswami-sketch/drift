@@ -160,7 +160,8 @@ export default function PhotoView(): JSX.Element {
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       if (useUI.getState().editMode) return
-      if (e.key === 'ArrowLeft') navigate(-1)
+      if (e.key === 'Escape') setViewerIndex(null)
+      else if (e.key === 'ArrowLeft') navigate(-1)
       else if (e.key === 'ArrowRight') navigate(1)
       else if (e.key === '+' || e.key === '=') zoomTo(scale.get() * 1.4)
       else if (e.key === '-') zoomTo(scale.get() / 1.4)
@@ -172,7 +173,7 @@ export default function PhotoView(): JSX.Element {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [navigate, zoomTo, resetZoom, scale])
+  }, [navigate, zoomTo, resetZoom, scale, setViewerIndex])
 
   if (!photo) return <></>
 
@@ -230,7 +231,7 @@ export default function PhotoView(): JSX.Element {
               style={{ x, y, scale }}
             >
               {isVideo ? (
-                <video key={`video-${photo.id}`} className="viewer-media" src={`media://${photo.id}a/`} controls autoPlay />
+                <video key={`video-${photo.id}`} className="viewer-media" src={`media://${photo.id}/`} controls autoPlay />
               ) : (
                 <>
                   {/* progressive: large thumb on top layer (z-index 2), fades out on load or error */}
@@ -255,7 +256,7 @@ export default function PhotoView(): JSX.Element {
                     key={`media-${photo.id}`}
                     ref={imgRef}
                     className="viewer-media viewer-media-full"
-                    src={`media://${photo.id}a/`}
+                    src={`media://${photo.id}/`}
                     draggable={false}
                     alt=""
                     onLoad={() => {
@@ -286,8 +287,10 @@ export default function PhotoView(): JSX.Element {
 
           {/* top bar */}
           <div className="viewer-topbar">
-            <button className="viewer-close icon-btn" onClick={() => setViewerIndex(null)} title="Close (Esc)">
-              ✕
+            <button className="viewer-close" onClick={() => setViewerIndex(null)} title="Close (Esc)" aria-label="Close viewer">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M3 3l10 10M13 3L3 13" />
+              </svg>
             </button>
             <span className="viewer-counter">
               {index + 1} of {photos.length}

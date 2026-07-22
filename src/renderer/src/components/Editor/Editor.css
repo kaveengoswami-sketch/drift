@@ -28,10 +28,48 @@
 
 .editor-crop {
   position: absolute;
-  border: 1.5px solid #fff;
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
   box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+  pointer-events: auto;
+  cursor: move;
+}
+
+.editor-crop::before,
+.editor-crop::after {
+  content: '';
+  position: absolute;
   pointer-events: none;
 }
+.editor-crop::before {
+  top: 33.33%;
+  bottom: 33.33%;
+  left: 0;
+  right: 0;
+  border-top: 1px dashed rgba(255, 255, 255, 0.3);
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.3);
+}
+.editor-crop::after {
+  left: 33.33%;
+  right: 33.33%;
+  top: 0;
+  bottom: 0;
+  border-left: 1px dashed rgba(255, 255, 255, 0.3);
+  border-right: 1px dashed rgba(255, 255, 255, 0.3);
+}
+
+.crop-handle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  border-radius: 2px;
+  z-index: 2;
+}
+.crop-handle.nw { top: -5px; left: -5px; cursor: nwse-resize; }
+.crop-handle.ne { top: -5px; right: -5px; cursor: nesw-resize; }
+.crop-handle.sw { bottom: -5px; left: -5px; cursor: nesw-resize; }
+.crop-handle.se { bottom: -5px; right: -5px; cursor: nwse-resize; }
 
 .editor-toolbar {
   display: flex;
@@ -59,13 +97,22 @@
   border-radius: 7px;
   font-size: 12px;
   color: var(--text-2);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
 }
-.editor-ratio:hover {
+.editor-ratio:hover:not(:disabled) {
   background: var(--hover);
 }
 .editor-ratio.active {
   background: var(--accent-soft);
   color: var(--text-1);
+  font-weight: 600;
+}
+.editor-ratio:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .editor-btn {
