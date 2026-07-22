@@ -64,6 +64,24 @@ const api = {
   clearCache: () => ipcRenderer.invoke('settings:clearCache'),
   appVersion: () => ipcRenderer.invoke('app:version'),
 
+  // faces & people
+  listPeople: () => ipcRenderer.invoke('faces:listPeople'),
+  getPerson: (id: number) => ipcRenderer.invoke('faces:getPerson', id),
+  facesForPhoto: (photoId: number) => ipcRenderer.invoke('faces:listForPhoto', photoId),
+  photosForPerson: (personId: number) => ipcRenderer.invoke('faces:listPhotosForPerson', personId),
+  namePerson: (personId: number, name: string) => ipcRenderer.invoke('faces:namePerson', personId, name),
+  mergePeople: (targetPersonId: number, sourcePersonId: number) =>
+    ipcRenderer.invoke('faces:mergePeople', targetPersonId, sourcePersonId),
+  detachFace: (faceId: number) => ipcRenderer.invoke('faces:detachFace', faceId),
+  startFaceScan: () => ipcRenderer.invoke('faces:startScan'),
+  cancelFaceScan: () => ipcRenderer.invoke('faces:cancelScan'),
+  getFaceScanProgress: () => ipcRenderer.invoke('faces:getScanProgress'),
+  onFaceScanProgress: (cb: (progress: unknown) => void) => {
+    const fn = (_: unknown, p: unknown): void => cb(p)
+    ipcRenderer.on('faces:progress', fn)
+    return () => ipcRenderer.removeListener('faces:progress', fn)
+  },
+
   // events
   onScanProgress: (cb: (p: unknown) => void) => {
     const fn = (_: unknown, p: unknown): void => cb(p)

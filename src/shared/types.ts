@@ -121,3 +121,38 @@ export const RAW_EXTS = new Set([
 ])
 
 export const VIDEO_EXTS = new Set(['.mp4', '.mov', '.avi', '.mkv', '.webm', '.wmv'])
+
+export interface Person {
+  id: number
+  name: string | null
+  type: 'human' | 'pet'
+  coverFaceId: number | null
+  isHidden: number
+  createdAt: number
+  faceCount: number
+  coverPhotoPath?: string | null
+  coverBbox?: { x: number; y: number; w: number; h: number } | null
+}
+
+export interface Face {
+  id: number
+  photoId: number
+  personId: number | null
+  bboxX: number
+  bboxY: number
+  bboxW: number
+  bboxH: number
+  confidence: number
+  detectionType: 'human' | 'cat' | 'dog'
+  createdAt: number
+  personName?: string | null
+}
+
+export interface FaceScanProgress {
+  scanned: number
+  total: number
+  facesFound: number
+  phase: 'idle' | 'downloading_models' | 'scanning' | 'clustering' | 'done' | 'error'
+  error?: string
+}
+

@@ -7,6 +7,7 @@ import * as db from '../database'
 import * as fileOps from '../file-ops'
 import { scanAllFolders, discoverSubfolders } from '../scanner'
 import { clearCache, cacheSizeBytes, cacheDir, ensureThumb, thumbPath, ensureCacheDirs, setViewport } from '../thumbnails'
+import * as faces from '../faces'
 
 // Handlers that turn a renderer-supplied string into a filesystem write or a
 // shell action resolve it against what the library actually indexed first.
@@ -224,4 +225,25 @@ export function registerIpc(win: BrowserWindow): void {
   ipcMain.handle('settings:clearCache', () => clearCache())
   ipcMain.handle('settings:cacheDir', () => cacheDir())
   ipcMain.handle('app:version', () => app.getVersion())
+
+  // ----- faces & people -----
+  ipcMain.handle('faces:listPeople', () => db.listPeople())
+  ipcMain.handle('faces:getPerson', (_e, id: number) => db.getPerson(id))
+  ipcMain.handle('faces:listForPhoto', (_e, photoId: number) => db.listFacesForPhoto(photoId))
+  ipcMain.handle('faces:listPhotosForPerson', (_e, personId: number) => db.listPhotosForPerson(personId))
+  ipcMain.handle('faces:namePerson', (_e, personId: number, name: string) => {
+    db.namePerson(personId, name)
+    send('library:changed')
+  })
+  ipcMain.handle('faces:mergePeople', (_e, targetPersonId: number, sourcePersonId: number) => {
+    db.mergePeople(targetPersonId, sourcePersonId)
+    send('library:changed')
+  })
+  ipcMain.handle('faces:detachFace', (_e, faceId: number) => {
+    db.detachFace(faceId)
+    send('library:changed')
+  })
+  ipcMain.handle('faces:startScan', () => faces.startFaceScan(activeWin))
+  ipcMain.handle('faces:cancelScan', () => faces.cancelFaceScan())
+  ipcMain.handle('faces:getScanProgress', () => faces.getScanProgress())
 }

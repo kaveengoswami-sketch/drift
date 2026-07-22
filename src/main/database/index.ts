@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { app } from 'electron'
 import path from 'path'
 import fs from 'fs'
-import type { Photo, SourceFolder, Album, Settings } from '@shared/types'
+import type { Photo, SourceFolder, Album, Settings, Person, Face } from '@shared/types'
 import { DEFAULT_SETTINGS } from '@shared/types'
 
 let db: DatabaseSync
@@ -88,6 +88,33 @@ function migrate(d: DatabaseSync): void {
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS people (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT,
+      type TEXT CHECK(type IN ('human', 'pet')) DEFAULT 'human',
+      coverFaceId INTEGER REFERENCES faces(id) ON DELETE SET NULL,
+      isHidden INTEGER DEFAULT 0,
+      createdAt INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS faces (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      photoId INTEGER NOT NULL REFERENCES photos(id) ON DELETE CASCADE,
+      personId INTEGER REFERENCES people(id) ON DELETE SET NULL,
+      bboxX REAL NOT NULL,
+      bboxY REAL NOT NULL,
+      bboxW REAL NOT NULL,
+      bboxH REAL NOT NULL,
+      embedding BLOB NOT NULL,
+      confidence REAL NOT NULL,
+      detectionType TEXT DEFAULT 'human',
+      createdAt INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_faces_photoId ON faces(photoId);
+    CREATE INDEX IF NOT EXISTS idx_faces_personId ON faces(personId);
+    CREATE TABLE IF NOT EXISTS photo_face_scanned (
+      photoId INTEGER PRIMARY KEY REFERENCES photos(id) ON DELETE CASCADE,
+      scannedAt INTEGER NOT NULL
     );
   `)
 }
@@ -429,3 +456,215 @@ export function getExpiredTrash(days: number): Photo[] {
 export function updatePhotoPath(id: number, newPath: string, newFilename: string): void {
   getDb().prepare('UPDATE photos SET path = ?, filename = ? WHERE id = ?').run(newPath, newFilename, id)
 }
+
+// ---------- faces & people ----------
+
+export function listPeople(): Person[] {
+  const d = getDb()
+  const rows = d.prepare(`
+    SELECT
+      p.id, p.name, p.type, p.coverFaceId, p.isHidden, p.createdAt,
+      COUNT(f.id) as faceCount,
+      ph.path as coverPhotoPath,
+      cf.bboxX as coverBboxX, cf.bboxY as coverBboxY, cf.bboxW as coverBboxW, cf.bboxH as coverBboxH
+    FROM people p
+    LEFT JOIN faces f ON f.personId = p.id
+    LEFT JOIN faces cf ON cf.id = p.coverFaceId
+    LEFT JOIN photos ph ON ph.id = cf.photoId
+    WHERE p.isHidden = 0
+    GROUP BY p.id
+    ORDER BY p.name IS NULL ASC, p.name ASC, faceCount DESC
+  `).all() as unknown as Array<{
+    id: number
+    name: string | null
+    type: 'human' | 'pet'
+    coverFaceId: number | null
+    isHidden: number
+    createdAt: number
+    faceCount: number
+    coverPhotoPath?: string | null
+    coverBboxX?: number | null
+    coverBboxY?: number | null
+    coverBboxW?: number | null
+    coverBboxH?: number | null
+  }>
+
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    type: r.type,
+    coverFaceId: r.coverFaceId,
+    isHidden: r.isHidden,
+    createdAt: r.createdAt,
+    faceCount: r.faceCount,
+    coverPhotoPath: r.coverPhotoPath || null,
+    coverBbox: r.coverBboxX != null ? { x: r.coverBboxX, y: r.coverBboxY!, w: r.coverBboxW!, h: r.coverBboxH! } : null
+  }))
+}
+
+export function getPerson(id: number): Person | undefined {
+  const d = getDb()
+  const r = d.prepare(`
+    SELECT
+      p.id, p.name, p.type, p.coverFaceId, p.isHidden, p.createdAt,
+      (SELECT COUNT(*) FROM faces WHERE personId = p.id) as faceCount,
+      ph.path as coverPhotoPath,
+      cf.bboxX as coverBboxX, cf.bboxY as coverBboxY, cf.bboxW as coverBboxW, cf.bboxH as coverBboxH
+    FROM people p
+    LEFT JOIN faces cf ON cf.id = p.coverFaceId
+    LEFT JOIN photos ph ON ph.id = cf.photoId
+    WHERE p.id = ?
+  `).get(id) as unknown as {
+    id: number
+    name: string | null
+    type: 'human' | 'pet'
+    coverFaceId: number | null
+    isHidden: number
+    createdAt: number
+    faceCount: number
+    coverPhotoPath?: string | null
+    coverBboxX?: number | null
+    coverBboxY?: number | null
+    coverBboxW?: number | null
+    coverBboxH?: number | null
+  } | undefined
+
+  if (!r) return undefined
+  return {
+    id: r.id,
+    name: r.name,
+    type: r.type,
+    coverFaceId: r.coverFaceId,
+    isHidden: r.isHidden,
+    createdAt: r.createdAt,
+    faceCount: r.faceCount,
+    coverPhotoPath: r.coverPhotoPath || null,
+    coverBbox: r.coverBboxX != null ? { x: r.coverBboxX, y: r.coverBboxY!, w: r.coverBboxW!, h: r.coverBboxH! } : null
+  }
+}
+
+export function listFacesForPhoto(photoId: number): Face[] {
+  const rows = getDb().prepare(`
+    SELECT f.*, p.name as personName
+    FROM faces f
+    LEFT JOIN people p ON p.id = f.personId
+    WHERE f.photoId = ?
+  `).all(photoId) as unknown as (Face & { personName: string | null })[]
+  return rows.map((r) => ({
+    id: r.id,
+    photoId: r.photoId,
+    personId: r.personId,
+    bboxX: r.bboxX,
+    bboxY: r.bboxY,
+    bboxW: r.bboxW,
+    bboxH: r.bboxH,
+    confidence: r.confidence,
+    detectionType: (r.detectionType as 'human' | 'cat' | 'dog') || 'human',
+    createdAt: r.createdAt,
+    personName: r.personName
+  }))
+}
+
+export function listPhotosForPerson(personId: number): Photo[] {
+  return getDb().prepare(`
+    SELECT DISTINCT p.*
+    FROM photos p
+    JOIN faces f ON f.photoId = p.id
+    WHERE f.personId = ? AND p.trashedAt IS NULL
+    ORDER BY p.dateTaken DESC
+  `).all(personId) as unknown as Photo[]
+}
+
+export function namePerson(personId: number, name: string): void {
+  const trimmed = name.trim()
+  getDb().prepare('UPDATE people SET name = ? WHERE id = ?').run(trimmed.length > 0 ? trimmed : null, personId)
+}
+
+export function mergePeople(targetPersonId: number, sourcePersonId: number): void {
+  if (targetPersonId === sourcePersonId) return
+  tx(() => {
+    const d = getDb()
+    d.prepare('UPDATE faces SET personId = ? WHERE personId = ?').run(targetPersonId, sourcePersonId)
+    d.prepare('DELETE FROM people WHERE id = ?').run(sourcePersonId)
+    const target = d.prepare('SELECT coverFaceId FROM people WHERE id = ?').get(targetPersonId) as unknown as { coverFaceId: number | null } | undefined
+    if (target && !target.coverFaceId) {
+      const topFace = d.prepare('SELECT id FROM faces WHERE personId = ? ORDER BY bboxW * bboxH DESC LIMIT 1').get(targetPersonId) as unknown as { id: number } | undefined
+      if (topFace) {
+        d.prepare('UPDATE people SET coverFaceId = ? WHERE id = ?').run(topFace.id, targetPersonId)
+      }
+    }
+  })
+}
+
+export function detachFace(faceId: number): void {
+  getDb().prepare('UPDATE faces SET personId = NULL WHERE id = ?').run(faceId)
+}
+
+export function getUnscannedPhotos(): Array<{ id: number; path: string }> {
+  return getDb().prepare(`
+    SELECT id, path FROM photos
+    WHERE type = 'image' AND trashedAt IS NULL
+      AND id NOT IN (SELECT photoId FROM photo_face_scanned)
+    ORDER BY dateTaken DESC
+  `).all() as unknown as Array<{ id: number; path: string }>
+}
+
+export function recordFaceScanResult(
+  photoId: number,
+  faces: Array<{
+    bboxX: number
+    bboxY: number
+    bboxW: number
+    bboxH: number
+    confidence: number
+    detectionType: string
+    embedding: Uint8Array
+  }>
+): void {
+  const d = getDb()
+  const now = Date.now()
+  const insertFaceStmt = d.prepare(`
+    INSERT INTO faces (photoId, personId, bboxX, bboxY, bboxW, bboxH, embedding, confidence, detectionType, createdAt)
+    VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+  const markScannedStmt = d.prepare(`
+    INSERT OR REPLACE INTO photo_face_scanned (photoId, scannedAt) VALUES (?, ?)
+  `)
+
+  tx(() => {
+    for (const f of faces) {
+      insertFaceStmt.run(photoId, f.bboxX, f.bboxY, f.bboxW, f.bboxH, Buffer.from(f.embedding), f.confidence, f.detectionType, now)
+    }
+    markScannedStmt.run(photoId, now)
+  })
+}
+
+export interface FaceEmbeddingRow {
+  id: number
+  photoId: number
+  personId: number | null
+  embedding: Buffer
+  personName: string | null
+}
+
+export function getAllFaceEmbeddings(): FaceEmbeddingRow[] {
+  return getDb().prepare(`
+    SELECT f.id, f.photoId, f.personId, f.embedding, p.name as personName
+    FROM faces f
+    LEFT JOIN people p ON p.id = f.personId
+  `).all() as unknown as FaceEmbeddingRow[]
+}
+
+export function createPerson(name: string | null = null, type: 'human' | 'pet' = 'human'): number {
+  const info = getDb().prepare('INSERT INTO people (name, type, createdAt) VALUES (?, ?, ?)').run(name, type, Date.now())
+  return Number(info.lastInsertRowid)
+}
+
+export function assignFaceToPerson(faceId: number, personId: number | null): void {
+  getDb().prepare('UPDATE faces SET personId = ? WHERE id = ?').run(personId, faceId)
+}
+
+export function updatePersonCoverFace(personId: number, coverFaceId: number | null): void {
+  getDb().prepare('UPDATE people SET coverFaceId = ? WHERE id = ?').run(coverFaceId, personId)
+}
+
