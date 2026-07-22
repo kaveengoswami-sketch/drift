@@ -18,12 +18,17 @@ export default function PhotoView(): JSX.Element {
 
   const containerRef = useRef<HTMLDivElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
+  const currentPhotoIdRef = useRef<number | null>(null)
+  currentPhotoIdRef.current = photo?.id ?? null
+
   const scale = useMotionValue(1)
   const x = useMotionValue(0)
   const y = useMotionValue(0)
-  const [fullLoaded, setFullLoaded] = useState(false)
+  const [fullLoadedPhotoId, setFullLoadedPhotoId] = useState<number | null>(null)
   const [zoomed, setZoomed] = useState(false)
   const [thumbVersion, setThumbVersion] = useState(0)
+
+  const fullLoaded = photo ? fullLoadedPhotoId === photo.id : false
 
   const resetZoom = useCallback((): void => {
     animate(scale, 1, SPRING)
@@ -39,7 +44,6 @@ export default function PhotoView(): JSX.Element {
     x.set(0)
     y.set(0)
     setZoomed(false)
-    setFullLoaded(false)
     window.drift.ensureThumb(photo.id, ['large'])
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [photo?.id])
@@ -47,7 +51,9 @@ export default function PhotoView(): JSX.Element {
   useEffect(() => {
     if (!photo) return
     if (imgRef.current?.complete && imgRef.current?.naturalWidth) {
-      setFullLoaded(true)
+      if (currentPhotoIdRef.current === photo.id) {
+        setFullLoadedPhotoId(photo.id)
+      }
     }
   }, [photo?.id])
 
@@ -204,11 +210,12 @@ export default function PhotoView(): JSX.Element {
               style={{ x, y, scale }}
             >
               {isVideo ? (
-                <video className="viewer-media" src={`media://${photo.id}a/`} controls autoPlay />
+                <video key={`video-${photo.id}`} className="viewer-media" src={`media://${photo.id}a/`} controls autoPlay />
               ) : (
                 <>
                   {/* progressive: large thumb underneath, original fades in on load */}
                   <img
+                    key={`thumb-${photo.id}`}
                     className="viewer-media"
                     src={`thumb://t/1024/${photo.hash}${thumbVersion ? `?v=${thumbVersion}` : ''}`}
                     draggable={false}
@@ -221,12 +228,17 @@ export default function PhotoView(): JSX.Element {
                     }}
                   />
                   <img
+                    key={`media-${photo.id}`}
                     ref={imgRef}
                     className="viewer-media"
                     src={`media://${photo.id}a/`}
                     draggable={false}
                     alt=""
-                    onLoad={() => setFullLoaded(true)}
+                    onLoad={() => {
+                      if (currentPhotoIdRef.current === photo.id) {
+                        setFullLoadedPhotoId(photo.id)
+                      }
+                    }}
                     style={{
                       opacity: fullLoaded ? 1 : 0,
                       position: fullLoaded ? 'relative' : 'absolute',
