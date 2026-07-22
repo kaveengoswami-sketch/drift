@@ -158,5 +158,10 @@ export function runClustering(): { clustersCreated: number; facesAssigned: numbe
     }
   }
 
+  // A rename/merge can drain every face out of a person row (its identity was
+  // folded into another one above); leaving it behind would show up as a
+  // "0 photos" ghost card in the People view.
+  db.deleteEmptyPeople()
+
   return { clustersCreated, facesAssigned }
 }

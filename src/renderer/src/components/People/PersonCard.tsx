@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import type { Person, Photo } from '@shared/types'
+import { onThumbReady } from '@/lib/thumbEvents'
 
 interface PersonCardProps {
   person: Person
@@ -24,6 +25,7 @@ export default function PersonCard({
   const [isEditing, setIsEditing] = useState(false)
   const [nameInput, setNameInput] = useState(person.name || '')
   const [isDragOver, setIsDragOver] = useState(false)
+  const [thumbVersion, setThumbVersion] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -41,6 +43,16 @@ export default function PersonCard({
       cancelled = true
     }
   }, [person.id])
+
+  // The card zooms into a small face bbox, sometimes 8x — a 512px whole-photo
+  // thumbnail (the old fixed size) turns into a handful of blurry pixels once
+  // scaled up. Request the largest cached bucket so the crop has real detail
+  // to zoom into, and refetch once it's actually been generated.
+  useEffect(() => {
+    if (!photo) return
+    window.drift.ensureThumb(photo.id, ['2048'])
+    return onThumbReady(photo.id, () => setThumbVersion((v) => v + 1))
+  }, [photo])
 
   useEffect(() => {
     if (isEditing) {
@@ -73,7 +85,7 @@ export default function PersonCard({
     transform: `translate(${translateX}%, ${translateY}%) scale(${scale})`
   }
 
-  const thumbUrl = photo ? `thumb://t/512/${photo.hash}` : null
+  const thumbUrl = photo ? `thumb://t/2048/${photo.hash}${thumbVersion ? `?v=${thumbVersion}` : ''}` : null
 
   return (
     <div

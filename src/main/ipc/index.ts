@@ -253,11 +253,24 @@ export function registerIpc(win: BrowserWindow): void {
   ipcMain.handle('faces:listForPhoto', (_e, photoId: number) => db.listFacesForPhoto(photoId))
   ipcMain.handle('faces:listPhotosForPerson', (_e, personId: number) => db.listPhotosForPerson(personId))
   ipcMain.handle('faces:namePerson', (_e, personId: number, name: string) => {
-    db.namePerson(personId, name)
+    // Typing a name that already belongs to another person means the detector
+    // split one identity into separate clusters — fold this one into the
+    // existing named person instead of creating a second "Kaveen" card.
+    const existing = name.trim() ? db.findPersonByName(name, personId) : undefined
+    if (existing) {
+      db.mergePeople(existing.id, personId)
+    } else {
+      db.namePerson(personId, name)
+    }
+    // Re-run clustering so any other still-unnamed cluster that is actually
+    // this same person (missed by the original scan's threshold) gets pulled
+    // into the named centroid now, instead of repeating the same split forever.
+    faces.runClustering()
     send('library:changed')
   })
   ipcMain.handle('faces:mergePeople', (_e, targetPersonId: number, sourcePersonId: number) => {
     db.mergePeople(targetPersonId, sourcePersonId)
+    if (db.getPerson(targetPersonId)?.name) faces.runClustering()
     send('library:changed')
   })
   ipcMain.handle('faces:detachFace', (_e, faceId: number) => {

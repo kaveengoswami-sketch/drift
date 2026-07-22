@@ -674,6 +674,21 @@ export function namePerson(personId: number, name: string): void {
   getDb().prepare('UPDATE people SET name = ? WHERE id = ?').run(trimmed.length > 0 ? trimmed : null, personId)
 }
 
+/** Case-insensitive lookup used to catch "same name, different cluster" before it becomes a duplicate. */
+export function findPersonByName(name: string, excludeId?: number): { id: number } | undefined {
+  const trimmed = name.trim()
+  if (!trimmed) return undefined
+  return getDb()
+    .prepare('SELECT id FROM people WHERE name IS NOT NULL AND lower(name) = lower(?) AND id != ? LIMIT 1')
+    .get(trimmed, excludeId ?? -1) as unknown as { id: number } | undefined
+}
+
+export function deleteEmptyPeople(): void {
+  getDb()
+    .prepare('DELETE FROM people WHERE id NOT IN (SELECT DISTINCT personId FROM faces WHERE personId IS NOT NULL)')
+    .run()
+}
+
 export function mergePeople(targetPersonId: number, sourcePersonId: number): void {
   if (targetPersonId === sourcePersonId) return
   tx(() => {
