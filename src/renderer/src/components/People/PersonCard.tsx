@@ -36,13 +36,16 @@ export default function PersonCard({
     let cancelled = false
     window.drift.photosForPerson(person.id).then((photos) => {
       if (!cancelled && photos && photos.length > 0) {
-        setPhoto(photos[0])
+        const coverPhoto = person.coverPhotoPath
+          ? photos.find((p) => p.path === person.coverPhotoPath) ?? photos[0]
+          : photos[0]
+        setPhoto(coverPhoto)
       }
     })
     return () => {
       cancelled = true
     }
-  }, [person.id])
+  }, [person.id, person.coverPhotoPath])
 
   // The card zooms into a small face bbox, sometimes 8x — a 512px whole-photo
   // thumbnail (the old fixed size) turns into a handful of blurry pixels once
@@ -92,7 +95,7 @@ export default function PersonCard({
       className={`person-card ${selected ? 'selected' : ''} ${isDragOver ? 'drag-over' : ''}`}
       onClick={(e) => {
         if (e.ctrlKey || e.metaKey) onSelect(person.id, 'toggle')
-        else onSelect(person.id, 'single')
+        else onOpen(person)
       }}
       onDoubleClick={() => onOpen(person)}
       onContextMenu={(e) => onContextMenu(e, person)}

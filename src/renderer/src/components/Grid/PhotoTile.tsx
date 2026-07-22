@@ -146,7 +146,7 @@ function PhotoTileInner({
     e.stopPropagation()
     if (e.shiftKey) onSelect(photo.id, index, 'range')
     else if (e.ctrlKey || e.metaKey) onSelect(photo.id, index, 'toggle')
-    else onSelect(photo.id, index, 'single')
+    else onOpen(index)
   }
 
   const handleDoubleClick = (e: React.MouseEvent): void => {

@@ -63,7 +63,7 @@ async function getSessions(
 const DET_INPUT = 640
 const DET_STRIDES = [8, 16, 32]
 const DET_ANCHORS = 2
-const DET_CONF = 0.5
+const DET_CONF = 0.65
 const DET_NMS_IOU = 0.4
 
 interface RawBox {
@@ -196,6 +196,8 @@ export async function processPhoto(job: ScanJob): Promise<ScanResult> {
       const w = Math.min(origW - x, (b.x2 - b.x1) / detScale)
       const h = Math.min(origH - y, (b.y2 - b.y1) / detScale)
       if (!Number.isFinite(x) || !Number.isFinite(y) || w < 16 || h < 16) continue
+      const aspectRatio = w / h
+      if (aspectRatio < 0.4 || aspectRatio > 1.5) continue
       detectedBoxes.push({ x: x / origW, y: y / origH, w: w / origW, h: h / origH, conf: b.conf })
     }
 
