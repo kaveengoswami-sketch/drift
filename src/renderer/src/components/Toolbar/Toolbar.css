@@ -3,8 +3,8 @@
 .toolbar {
   height: var(--toolbar-h);
   background: var(--glass-bg-toolbar);
-  backdrop-filter: blur(var(--glass-blur-chrome)) saturate(180%);
-  -webkit-backdrop-filter: blur(var(--glass-blur-chrome)) saturate(180%);
+  backdrop-filter: blur(var(--glass-blur-chrome)) saturate(var(--glass-saturate, 180%));
+  -webkit-backdrop-filter: blur(var(--glass-blur-chrome)) saturate(var(--glass-saturate, 180%));
   border-bottom: 1px solid var(--separator);
   box-shadow: var(--glass-highlight);
   display: flex;

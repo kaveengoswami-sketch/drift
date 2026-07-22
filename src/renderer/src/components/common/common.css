@@ -11,8 +11,8 @@
   border-radius: var(--r-lg);
   padding: 5px;
   background: var(--glass-bg-modal);
-  backdrop-filter: blur(var(--glass-blur-modal)) saturate(180%);
-  -webkit-backdrop-filter: blur(var(--glass-blur-modal)) saturate(180%);
+  backdrop-filter: blur(var(--glass-blur-modal)) saturate(var(--glass-saturate, 180%));
+  -webkit-backdrop-filter: blur(var(--glass-blur-modal)) saturate(var(--glass-saturate, 180%));
   border: 1px solid var(--glass-border-color);
   box-shadow: var(--modal-shadow);
   z-index: 301;
@@ -70,8 +70,8 @@
   border-radius: var(--r-lg);
   padding: 5px;
   background: var(--glass-bg-modal);
-  backdrop-filter: blur(var(--glass-blur-modal)) saturate(180%);
-  -webkit-backdrop-filter: blur(var(--glass-blur-modal)) saturate(180%);
+  backdrop-filter: blur(var(--glass-blur-modal)) saturate(var(--glass-saturate, 180%));
+  -webkit-backdrop-filter: blur(var(--glass-blur-modal)) saturate(var(--glass-saturate, 180%));
   border: 1px solid var(--glass-border-color);
   box-shadow: var(--modal-shadow);
 }
@@ -101,8 +101,8 @@
   border-radius: var(--r-lg);
   padding: 22px;
   background: var(--glass-bg-modal);
-  backdrop-filter: blur(var(--glass-blur-modal)) saturate(180%);
-  -webkit-backdrop-filter: blur(var(--glass-blur-modal)) saturate(180%);
+  backdrop-filter: blur(var(--glass-blur-modal)) saturate(var(--glass-saturate, 180%));
+  -webkit-backdrop-filter: blur(var(--glass-blur-modal)) saturate(var(--glass-saturate, 180%));
   border: 1px solid var(--glass-border-color);
   box-shadow: var(--modal-shadow);
 }
@@ -145,8 +145,8 @@
   font-size: var(--fs-body);
   color: var(--text-primary);
   background: var(--glass-bg-modal);
-  backdrop-filter: blur(var(--glass-blur-chrome)) saturate(180%);
-  -webkit-backdrop-filter: blur(var(--glass-blur-chrome)) saturate(180%);
+  backdrop-filter: blur(var(--glass-blur-chrome)) saturate(var(--glass-saturate, 180%));
+  -webkit-backdrop-filter: blur(var(--glass-blur-chrome)) saturate(var(--glass-saturate, 180%));
   border: 1px solid var(--glass-border-color);
   box-shadow: var(--modal-shadow);
   z-index: 90;

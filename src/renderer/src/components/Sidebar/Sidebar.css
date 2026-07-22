@@ -4,9 +4,10 @@
   width: var(--sidebar-w);
   flex: 0 0 auto;
   background: var(--glass-bg-sidebar);
-  backdrop-filter: blur(var(--glass-blur-chrome)) saturate(180%);
-  -webkit-backdrop-filter: blur(var(--glass-blur-chrome)) saturate(180%);
+  backdrop-filter: blur(var(--glass-blur-chrome)) saturate(var(--glass-saturate, 180%));
+  -webkit-backdrop-filter: blur(var(--glass-blur-chrome)) saturate(var(--glass-saturate, 180%));
   border-right: 1px solid var(--separator);
+  box-shadow: var(--glass-highlight);
   overflow: hidden;
   z-index: 10;
 }

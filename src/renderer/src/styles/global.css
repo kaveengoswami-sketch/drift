@@ -4,24 +4,25 @@
 :root[data-theme="dark"] {
   /* ---- surfaces (macOS dark) ---- */
   --bg-content:      #18181a;
-  --bg-sidebar:      rgba(28, 28, 30, 0.88);
-  --bg-toolbar:      rgba(34, 34, 36, 0.88);
-  --bg-modal:        rgba(28, 28, 32, 0.92);
+  --bg-sidebar:      rgba(26, 26, 30, 0.62);
+  --bg-toolbar:      rgba(30, 30, 36, 0.68);
+  --bg-modal:        rgba(28, 28, 34, 0.65);
   --bg-elevated:     #2c2c2e;
   --bg-hover:        rgba(255, 255, 255, 0.08);
   --bg-active:       rgba(255, 255, 255, 0.14);
   --bg-selected:     rgba(255, 255, 255, 0.16);
 
   /* ---- backdrop & glass ---- */
-  --glass-bg-modal:    rgba(28, 28, 32, 0.92);
-  --glass-bg-sidebar:  rgba(28, 28, 30, 0.88);
-  --glass-bg-toolbar:  rgba(34, 34, 36, 0.88);
-  --glass-scrim:       rgba(0, 0, 0, 0.65);
-  --glass-blur-modal:  40px;
-  --glass-blur-chrome: 30px;
-  --glass-border-color: rgba(255, 255, 255, 0.15);
-  --glass-highlight:   inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  --modal-shadow:      0 20px 48px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  --glass-bg-modal:    rgba(28, 28, 34, 0.65);
+  --glass-bg-sidebar:  rgba(26, 26, 30, 0.62);
+  --glass-bg-toolbar:  rgba(30, 30, 36, 0.68);
+  --glass-scrim:       rgba(0, 0, 0, 0.45);
+  --glass-blur-modal:  44px;
+  --glass-blur-chrome: 36px;
+  --glass-saturate:    180%;
+  --glass-border-color: rgba(255, 255, 255, 0.16);
+  --glass-highlight:   inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  --modal-shadow:      0 24px 60px rgba(0, 0, 0, 0.65), 0 8px 24px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.15);
 
   /* ---- text ---- */
   --text-primary:    rgba(255, 255, 255, 0.94);
@@ -80,21 +81,24 @@
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
     --bg-content:      #f8f8fa;
-    --bg-sidebar:      rgba(242, 242, 247, 0.90);
-    --bg-toolbar:      rgba(238, 238, 242, 0.90);
-    --bg-modal:        rgba(252, 252, 254, 0.95);
+    --bg-sidebar:      rgba(242, 242, 247, 0.65);
+    --bg-toolbar:      rgba(245, 245, 249, 0.70);
+    --bg-modal:        rgba(255, 255, 255, 0.68);
     --bg-elevated:     #ffffff;
     --bg-hover:        rgba(0, 0, 0, 0.05);
     --bg-active:       rgba(0, 0, 0, 0.09);
     --bg-selected:     rgba(0, 0, 0, 0.08);
 
-    --glass-bg-modal:    rgba(252, 252, 254, 0.95);
-    --glass-bg-sidebar:  rgba(242, 242, 247, 0.90);
-    --glass-bg-toolbar:  rgba(238, 238, 242, 0.90);
-    --glass-scrim:       rgba(0, 0, 0, 0.45);
+    --glass-bg-modal:    rgba(255, 255, 255, 0.68);
+    --glass-bg-sidebar:  rgba(242, 242, 247, 0.65);
+    --glass-bg-toolbar:  rgba(245, 245, 249, 0.70);
+    --glass-scrim:       rgba(0, 0, 0, 0.35);
+    --glass-blur-modal:  44px;
+    --glass-blur-chrome: 36px;
+    --glass-saturate:    190%;
     --glass-border-color: rgba(0, 0, 0, 0.12);
-    --glass-highlight:   inset 0 1px 0 rgba(255, 255, 255, 0.80);
-    --modal-shadow:      0 20px 48px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.80);
+    --glass-highlight:   inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    --modal-shadow:      0 24px 60px rgba(0, 0, 0, 0.22), 0 8px 24px rgba(0, 0, 0, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.85);
 
     --text-primary:    rgba(0, 0, 0, 0.88);
     --text-secondary:  rgba(0, 0, 0, 0.60);
@@ -106,27 +110,30 @@
     --separator:       rgba(0, 0, 0, 0.10);
     --border-strong:   rgba(0, 0, 0, 0.14);
 
-    --shadow:          0 20px 48px rgba(0, 0, 0, 0.25);
+    --shadow:          0 20px 48px rgba(0, 0, 0, 0.20);
   }
 }
 
 :root[data-theme="light"] {
   --bg-content:      #f8f8fa;
-  --bg-sidebar:      rgba(242, 242, 247, 0.90);
-  --bg-toolbar:      rgba(238, 238, 242, 0.90);
-  --bg-modal:        rgba(252, 252, 254, 0.95);
+  --bg-sidebar:      rgba(242, 242, 247, 0.65);
+  --bg-toolbar:      rgba(245, 245, 249, 0.70);
+  --bg-modal:        rgba(255, 255, 255, 0.68);
   --bg-elevated:     #ffffff;
   --bg-hover:        rgba(0, 0, 0, 0.05);
   --bg-active:       rgba(0, 0, 0, 0.09);
   --bg-selected:     rgba(0, 0, 0, 0.08);
 
-  --glass-bg-modal:    rgba(252, 252, 254, 0.95);
-  --glass-bg-sidebar:  rgba(242, 242, 247, 0.90);
-  --glass-bg-toolbar:  rgba(238, 238, 242, 0.90);
-  --glass-scrim:       rgba(0, 0, 0, 0.45);
+  --glass-bg-modal:    rgba(255, 255, 255, 0.68);
+  --glass-bg-sidebar:  rgba(242, 242, 247, 0.65);
+  --glass-bg-toolbar:  rgba(245, 245, 249, 0.70);
+  --glass-scrim:       rgba(0, 0, 0, 0.35);
+  --glass-blur-modal:  44px;
+  --glass-blur-chrome: 36px;
+  --glass-saturate:    190%;
   --glass-border-color: rgba(0, 0, 0, 0.12);
-  --glass-highlight:   inset 0 1px 0 rgba(255, 255, 255, 0.80);
-  --modal-shadow:      0 20px 48px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.80);
+  --glass-highlight:   inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  --modal-shadow:      0 24px 60px rgba(0, 0, 0, 0.22), 0 8px 24px rgba(0, 0, 0, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.85);
 
   --text-primary:    rgba(0, 0, 0, 0.88);
   --text-secondary:  rgba(0, 0, 0, 0.60);
@@ -138,7 +145,7 @@
   --separator:       rgba(0, 0, 0, 0.10);
   --border-strong:   rgba(0, 0, 0, 0.14);
 
-  --shadow:          0 20px 48px rgba(0, 0, 0, 0.25);
+  --shadow:          0 20px 48px rgba(0, 0, 0, 0.20);
 }
 
 /* ---- resets ---- */
@@ -244,8 +251,8 @@ input:focus {
 /* Frosted glass utility class */
 .glass {
   background: var(--glass-bg-modal);
-  backdrop-filter: blur(var(--glass-blur-modal)) saturate(180%);
-  -webkit-backdrop-filter: blur(var(--glass-blur-modal)) saturate(180%);
+  backdrop-filter: blur(var(--glass-blur-modal)) saturate(var(--glass-saturate, 180%));
+  -webkit-backdrop-filter: blur(var(--glass-blur-modal)) saturate(var(--glass-saturate, 180%));
   border: 1px solid var(--glass-border-color);
   box-shadow: var(--modal-shadow);
 }
