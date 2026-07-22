@@ -87,6 +87,15 @@ function IconBook(): JSX.Element {
   )
 }
 
+function IconSettings(): JSX.Element {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3">
+      <circle cx="8" cy="8" r="2.2" />
+      <path d="M6.5 1.5h3l.4 1.5a5 5 0 0 1 1.2.7l1.5-.5 1.5 2.6-1.1 1.1a5 5 0 0 1 0 1.6l1.1 1.1-1.5 2.6-1.5-.5a5 5 0 0 1-1.2.7l-.4 1.5h-3l-.4-1.5a5 5 0 0 1-1.2-.7l-1.5.5-1.5-2.6 1.1-1.1a5 5 0 0 1 0-1.6L1 6.9l1.5-2.6 1.5.5a5 5 0 0 1 1.2-.7l.4-1.5Z" />
+    </svg>
+  )
+}
+
 /* ------------------------------------------------------------------ */
 
 const LIBRARY_ITEMS: { key: LibraryQuery; label: string; Icon: () => JSX.Element; isLocked?: boolean }[] = [
@@ -124,7 +133,7 @@ function Section({
 
 export default function Sidebar(): JSX.Element {
   const { query, setQuery, folders, subfolders, albums, refreshSidebar } = useLibrary()
-  const { sidebarCollapsed, openContextMenu, askConfirm } = useUI()
+  const { sidebarCollapsed, openContextMenu, askConfirm, setSettingsOpen } = useUI()
   const activeKey = queryKey(query)
 
   const createAlbum = async (): Promise<void> => {
@@ -309,6 +318,20 @@ export default function Sidebar(): JSX.Element {
               })}
               {!folders.length && <div className="sb-empty">No folders yet</div>}
             </Section>
+          </div>
+
+          <div className="sb-footer" style={{ padding: '8px 12px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+            <button
+              className="sb-item sb-settings-btn"
+              onClick={() => setSettingsOpen(true)}
+              title="Settings (Ctrl+,)"
+              style={{ width: '100%' }}
+            >
+              <span className="sb-icon">
+                <IconSettings />
+              </span>
+              <span className="sb-label">Settings</span>
+            </button>
           </div>
         </motion.aside>
       )}

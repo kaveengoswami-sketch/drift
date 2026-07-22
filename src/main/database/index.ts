@@ -191,7 +191,8 @@ export function queryPhotos(q: {
   search?: string
 }): Photo[] {
   const d = getDb()
-  const searchPattern = q.search ? '%' + q.search.trim().replace(/([%_\\])/g, '\\$1') + '%' : null
+  const trimmedSearch = q.search ? q.search.trim() : ''
+  const searchPattern = trimmedSearch ? '%' + trimmedSearch.replace(/([%_\\])/g, '\\$1') + '%' : null
 
   switch (q.view) {
     case 'favorites':

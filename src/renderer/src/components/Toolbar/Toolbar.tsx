@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
 import { useUI, ZOOM_LEVELS } from '@/stores/uiStore'
 import { useLibrary } from '@/stores/libraryStore'
+import type { ContextMenuItem } from '@/stores/uiStore'
 import './Toolbar.css'
 
 /* SVG icon helpers ------------------------------------------------- */
@@ -50,16 +51,6 @@ function IconMore(): JSX.Element {
       <circle cx="3.5" cy="8" r="1.3" />
       <circle cx="8" cy="8" r="1.3" />
       <circle cx="12.5" cy="8" r="1.3" />
-    </svg>
-  )
-}
-
-function IconInfo(): JSX.Element {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4">
-      <circle cx="8" cy="8" r="6.5" />
-      <line x1="8" y1="7" x2="8" y2="11.5" />
-      <circle cx="8" cy="4.5" r="0.7" fill="currentColor" stroke="none" />
     </svg>
   )
 }
@@ -133,11 +124,13 @@ const GROUP_SEGMENTS: { key: GroupBy; label: string }[] = [
 export default function Toolbar(): JSX.Element {
   const [maximized, setMaximized] = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const photos = useLibrary((s) => s.photos)
   const query = useLibrary((s) => s.query)
   const setQuery = useLibrary((s) => s.setQuery)
   const selection = useLibrary((s) => s.selection)
+  const viewerIndex = useLibrary((s) => s.viewerIndex)
   const toggleFavorite = useLibrary((s) => s.toggleFavorite)
   const setSlideshow = useLibrary((s) => s.setSlideshow)
   const selectAll = useLibrary((s) => s.selectAll)
@@ -149,12 +142,10 @@ export default function Toolbar(): JSX.Element {
   const zoom = useUI((s) => s.zoom)
   const aspectMode = useUI((s) => s.aspectMode)
   const groupBy = useUI((s) => s.groupBy)
-  const infoPanelOpen = useUI((s) => s.infoPanelOpen)
   const toggleSidebar = useUI((s) => s.toggleSidebar)
   const setZoom = useUI((s) => s.setZoom)
   const setAspectMode = useUI((s) => s.setAspectMode)
   const setGroupBy = useUI((s) => s.setGroupBy)
-  const toggleInfoPanel = useUI((s) => s.toggleInfoPanel)
   const openContextMenu = useUI((s) => s.openContextMenu)
   const setSettingsOpen = useUI((s) => s.setSettingsOpen)
 
@@ -167,9 +158,18 @@ export default function Toolbar(): JSX.Element {
     setSearch(query.search ?? '')
   }, [query.search])
 
+  useEffect(() => {
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+    }
+  }, [])
+
   const handleSearchChange = (val: string): void => {
     setSearch(val)
-    setQuery({ ...query, search: val || undefined })
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+    searchTimerRef.current = setTimeout(() => {
+      setQuery({ ...useLibrary.getState().query, search: val || undefined })
+    }, 150)
   }
 
   const toggleAspect = (): void => {
@@ -250,6 +250,38 @@ export default function Toolbar(): JSX.Element {
     else setQuery({ view: 'favorites' })
   }
 
+  const handleShareClick = (e: React.MouseEvent): void => {
+    const currentPhoto =
+      viewerIndex !== null && photos[viewerIndex]
+        ? photos[viewerIndex]
+        : (photos.find((p) => selection.has(p.id)) ?? null)
+
+    const items: ContextMenuItem[] = []
+    if (currentPhoto) {
+      items.push(
+        {
+          label: 'Copy Image to Clipboard',
+          action: () => window.drift.copyToClipboard(currentPhoto.path)
+        },
+        {
+          label: 'Copy File Path',
+          action: () => navigator.clipboard.writeText(currentPhoto.path)
+        },
+        {
+          label: 'Reveal in File Explorer',
+          action: () => window.drift.showInExplorer(currentPhoto.path)
+        }
+      )
+    } else {
+      items.push({
+        label: 'Select a photo to share',
+        action: () => {}
+      })
+    }
+
+    openContextMenu(e.clientX, e.clientY, items)
+  }
+
   return (
     <div className="toolbar">
       {/* LEFT: sidebar toggle, plus button, title + subtitle */}
@@ -281,7 +313,7 @@ export default function Toolbar(): JSX.Element {
         </div>
       </div>
 
-      {/* RIGHT: stack/grid icon, zoom slider, more, info, heart, share, search, caption buttons */}
+      {/* RIGHT: stack/grid icon, zoom slider, more, heart, share, search, caption buttons */}
       <div className="toolbar-right">
         <button
           className={`icon-btn tb-btn${aspectMode === 'aspect' ? ' active' : ''}`}
@@ -304,17 +336,10 @@ export default function Toolbar(): JSX.Element {
         <button className="icon-btn tb-btn" onClick={handleMoreClick} title="More actions">
           <IconMore />
         </button>
-        <button
-          className={`icon-btn tb-btn${infoPanelOpen ? ' active' : ''}`}
-          onClick={toggleInfoPanel}
-          title="Info (I)"
-        >
-          <IconInfo />
-        </button>
         <button className="icon-btn tb-btn" onClick={handleHeartClick} title="Favorite selected (F)">
           <IconHeart />
         </button>
-        <button className="icon-btn tb-btn" title="Share">
+        <button className="icon-btn tb-btn" onClick={handleShareClick} title="Share photo">
           <IconShare />
         </button>
 
@@ -360,3 +385,4 @@ export default function Toolbar(): JSX.Element {
     </div>
   )
 }
+
