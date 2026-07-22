@@ -37,7 +37,7 @@ export interface DriftApi {
 
   photoMeta(id: number): Promise<PhotoMeta | null>
   showInExplorer(p: string): Promise<void>
-  copyToClipboard(p: string): Promise<void>
+  copyToClipboard(p: string): Promise<import('@shared/types').CopyResult>
 
   trashPhotos(ids: number[]): Promise<void>
   restorePhotos(ids: number[]): Promise<void>

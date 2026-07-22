@@ -343,3 +343,25 @@
   font-size: var(--fs-caption);
   color: var(--text-secondary);
 }
+
+/* Failed-scan notice on the empty hero. Without this the 'error' phase had no
+   rendering at all and a broken scan was indistinguishable from a dead button. */
+.people-scan-error {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 460px;
+  margin: 0 auto 14px;
+  padding: 10px 14px;
+  border-radius: var(--r-md, 8px);
+  border: 1px solid rgba(255, 69, 58, 0.45);
+  background: rgba(255, 69, 58, 0.1);
+  font-size: var(--fs-caption, 12px);
+  color: var(--text-primary);
+  text-align: left;
+}
+
+.people-scan-error span {
+  color: var(--text-secondary);
+  word-break: break-word;
+}

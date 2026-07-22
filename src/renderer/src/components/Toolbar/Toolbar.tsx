@@ -3,6 +3,7 @@ import { useUI, ZOOM_LEVELS } from '@/stores/uiStore'
 import { useLibrary } from '@/stores/libraryStore'
 import type { ContextMenuItem } from '@/stores/uiStore'
 import './Toolbar.css'
+import { copyPhotoToClipboard, copyTextToClipboard } from '@/lib/copy'
 
 /* SVG icon helpers ------------------------------------------------- */
 function IconSidebarToggle(): JSX.Element {
@@ -245,7 +246,11 @@ export default function Toolbar(): JSX.Element {
       items.push(
         {
           label: `Copy ${selectedPhotos.length} File Paths`,
-          action: () => navigator.clipboard.writeText(selectedPhotos.map((p) => p.path).join('\n'))
+          action: () =>
+            copyTextToClipboard(
+              selectedPhotos.map((p) => p.path).join('\n'),
+              `${selectedPhotos.length} file paths`
+            )
         },
         {
           label: 'Reveal First in File Explorer',
@@ -256,11 +261,11 @@ export default function Toolbar(): JSX.Element {
       items.push(
         {
           label: 'Copy Image to Clipboard',
-          action: () => window.drift.copyToClipboard(currentPhoto.path)
+          action: () => copyPhotoToClipboard(currentPhoto.path)
         },
         {
           label: 'Copy File Path',
-          action: () => navigator.clipboard.writeText(currentPhoto.path)
+          action: () => copyTextToClipboard(currentPhoto.path, 'File path')
         },
         {
           label: 'Reveal in File Explorer',

@@ -201,15 +201,6 @@ function PhotoTileInner({
         </div>
       )}
 
-      {/* Favorite heart indicator (bottom-left) */}
-      {!!photo.favorite && (
-        <div className="tile-fav">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="#ff5f7a">
-            <path d="M12 21s-7.5-4.9-9.9-9.2C.5 8.4 2.4 4.5 6 4.5c2.1 0 3.5 1.1 4.3 2.4L12 9l1.7-2.1c.8-1.3 2.2-2.4 4.3-2.4 3.6 0 5.5 3.9 3.9 7.3C19.5 16.1 12 21 12 21z" />
-          </svg>
-        </div>
-      )}
-
       {/* Selection checkmark badge — top-right per design spec section 5 */}
       {selected && (
         <div className="tile-check">
@@ -227,10 +218,12 @@ function PhotoTileInner({
         </div>
       )}
 
-      {/* Hover-reveal heart button — top-left */}
+      {/* The ONLY heart on a tile: bottom-left, always shown when favorited and
+          hover-revealed otherwise. A separate always-on badge used to sit here
+          too, so a favorited tile showed two hearts at once on hover. */}
       <button
-        className="tile-heart"
-        title="Favorite"
+        className={`tile-heart${photo.favorite ? ' is-fav' : ''}`}
+        title={photo.favorite ? 'Remove from Favorites' : 'Favorite'}
         onClick={(e) => {
           e.stopPropagation()
           useLibrary.getState().toggleFavorite([photo.id])

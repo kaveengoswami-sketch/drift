@@ -59,6 +59,42 @@ async function getSessions(
   return { detector: detectorSession, recognizer: recognizerSession }
 }
 
+/** SCRFD-500M topology: square input, 3 FPN strides, 2 anchors per cell. */
+const DET_INPUT = 640
+const DET_STRIDES = [8, 16, 32]
+const DET_ANCHORS = 2
+const DET_CONF = 0.5
+const DET_NMS_IOU = 0.4
+
+interface RawBox {
+  x1: number
+  y1: number
+  x2: number
+  y2: number
+  conf: number
+}
+
+/** Greedy non-maximum suppression — every stride fires on the same face. */
+function nms(boxes: RawBox[]): RawBox[] {
+  boxes.sort((a, b) => b.conf - a.conf)
+  const keep: RawBox[] = []
+  for (const b of boxes) {
+    let overlaps = false
+    for (const k of keep) {
+      const iw = Math.max(0, Math.min(b.x2, k.x2) - Math.max(b.x1, k.x1))
+      const ih = Math.max(0, Math.min(b.y2, k.y2) - Math.max(b.y1, k.y1))
+      const inter = iw * ih
+      const union = (b.x2 - b.x1) * (b.y2 - b.y1) + (k.x2 - k.x1) * (k.y2 - k.y1) - inter
+      if (union > 0 && inter / union > DET_NMS_IOU) {
+        overlaps = true
+        break
+      }
+    }
+    if (!overlaps) keep.push(b)
+  }
+  return keep
+}
+
 function l2Normalize(arr: Float32Array): Float32Array {
   let sum = 0
   for (let i = 0; i < arr.length; i++) {
@@ -78,83 +114,89 @@ export async function processPhoto(job: ScanJob): Promise<ScanResult> {
     const { detector, recognizer } = await getSessions(job.detectorPath, job.recognizerPath)
     const ort = await getOrt()
 
-    const metadata = await sharp(job.filePath, { failOn: 'none' }).rotate().metadata()
-    const origW = metadata.width || 0
-    const origH = metadata.height || 0
+    // sharp's metadata() reports the file's stored dimensions, which for an
+    // EXIF-rotated portrait shot are the *pre*-rotation ones. Using them
+    // unswapped makes every later coordinate mapping wrong, so swap here.
+    const metadata = await sharp(job.filePath, { failOn: 'none' }).metadata()
+    const swapped = (metadata.orientation || 1) >= 5
+    const origW = (swapped ? metadata.height : metadata.width) || 0
+    const origH = (swapped ? metadata.width : metadata.height) || 0
 
     if (!origW || !origH) {
       return { photoId: job.photoId, ok: true, faces: [] }
     }
 
-    const targetDim = 640
-    const scale = Math.min(targetDim / origW, targetDim / origH, 1.0)
-    const detW = Math.round(origW * scale)
-    const detH = Math.round(origH * scale)
-
     const { data: rawBuf, info } = await sharp(job.filePath, { failOn: 'none' })
       .rotate()
-      .resize(detW, detH, { fit: 'inside' })
+      .resize(DET_INPUT, DET_INPUT, { fit: 'inside' })
       .removeAlpha()
       .raw()
       .toBuffer({ resolveWithObject: true })
 
-    const inputSize = 3 * info.height * info.width
-    const floatData = new Float32Array(inputSize)
-    const channelSize = info.height * info.width
-
-    for (let i = 0; i < channelSize; i++) {
-      const r = rawBuf[i * 3]
-      const g = rawBuf[i * 3 + 1]
-      const b = rawBuf[i * 3 + 2]
-      floatData[i] = (r - 127.5) / 128.0
-      floatData[channelSize + i] = (g - 127.5) / 128.0
-      floatData[2 * channelSize + i] = (b - 127.5) / 128.0
+    // SCRFD's anchor grid is derived from a fixed DET_INPUT square, so the
+    // resized image is letterboxed into the top-left of one here rather than
+    // fed at its own dimensions.
+    const channelSize = DET_INPUT * DET_INPUT
+    const floatData = new Float32Array(3 * channelSize)
+    floatData.fill((0 - 127.5) / 128.0)
+    for (let y = 0; y < info.height; y++) {
+      for (let x = 0; x < info.width; x++) {
+        const s = (y * info.width + x) * 3
+        const d = y * DET_INPUT + x
+        floatData[d] = (rawBuf[s] - 127.5) / 128.0
+        floatData[channelSize + d] = (rawBuf[s + 1] - 127.5) / 128.0
+        floatData[2 * channelSize + d] = (rawBuf[s + 2] - 127.5) / 128.0
+      }
     }
+    const detScale = info.width / origW
 
-    const inputTensor = new ort.Tensor('float32', floatData, [1, 3, info.height, info.width])
+    const inputTensor = new ort.Tensor('float32', floatData, [1, 3, DET_INPUT, DET_INPUT])
     const detectorInputName = detector.inputNames[0]
     const outputs = await detector.run({ [detectorInputName]: inputTensor })
 
-    const detectedBoxes: Array<{ x: number; y: number; w: number; h: number; conf: number }> = []
+    // SCRFD emits 9 tensors in a fixed order: scores for strides 8/16/32,
+    // then bbox distances, then keypoints. The bbox values are per-anchor
+    // distances in stride units from the anchor centre — not absolute
+    // coordinates — so they mean nothing without this decode plus NMS.
+    const names = detector.outputNames
+    const raw: RawBox[] = []
+    for (let si = 0; si < DET_STRIDES.length; si++) {
+      const stride = DET_STRIDES[si]
+      const scores = outputs[names[si]]?.data as Float32Array | undefined
+      const deltas = outputs[names[si + DET_STRIDES.length]]?.data as Float32Array | undefined
+      if (!scores || !deltas) continue
 
-    for (const name of detector.outputNames) {
-      const tensor = outputs[name]
-      if (!tensor) continue
-      const data = tensor.data as Float32Array
-      const dims = tensor.dims
-
-      if (dims.length === 2 && dims[1] >= 4) {
-        const numDets = dims[0]
-        const stride = dims[1]
-        for (let i = 0; i < numDets; i++) {
-          const conf = stride >= 5 ? data[i * stride + 4] : 0.9
-          if (conf >= 0.5) {
-            let x1 = data[i * stride]
-            let y1 = data[i * stride + 1]
-            let x2 = data[i * stride + 2]
-            let y2 = data[i * stride + 3]
-
-            if (x2 <= 1.0 && y2 <= 1.0) {
-              x1 *= info.width
-              y1 *= info.height
-              x2 *= info.width
-              y2 *= info.height
-            }
-
-            const bw = Math.max(0, x2 - x1)
-            const bh = Math.max(0, y2 - y1)
-            if (bw > 10 && bh > 10) {
-              detectedBoxes.push({
-                x: x1 / info.width,
-                y: y1 / info.height,
-                w: bw / info.width,
-                h: bh / info.height,
-                conf
-              })
-            }
+      const grid = DET_INPUT / stride
+      for (let row = 0; row < grid; row++) {
+        for (let col = 0; col < grid; col++) {
+          for (let a = 0; a < DET_ANCHORS; a++) {
+            const idx = (row * grid + col) * DET_ANCHORS + a
+            const conf = scores[idx]
+            if (!(conf >= DET_CONF)) continue
+            const cx = col * stride
+            const cy = row * stride
+            const o = idx * 4
+            raw.push({
+              x1: cx - deltas[o] * stride,
+              y1: cy - deltas[o + 1] * stride,
+              x2: cx + deltas[o + 2] * stride,
+              y2: cy + deltas[o + 3] * stride,
+              conf
+            })
           }
         }
       }
+    }
+
+    const detectedBoxes: Array<{ x: number; y: number; w: number; h: number; conf: number }> = []
+    for (const b of nms(raw)) {
+      // Back to full-resolution pixels, then to 0..1 fractions for storage.
+      const x = Math.max(0, b.x1 / detScale)
+      const y = Math.max(0, b.y1 / detScale)
+      const w = Math.min(origW - x, (b.x2 - b.x1) / detScale)
+      const h = Math.min(origH - y, (b.y2 - b.y1) / detScale)
+      if (!Number.isFinite(x) || !Number.isFinite(y) || w < 16 || h < 16) continue
+      detectedBoxes.push({ x: x / origW, y: y / origH, w: w / origW, h: h / origH, conf: b.conf })
     }
 
     const detectedFaces: DetectedFace[] = []

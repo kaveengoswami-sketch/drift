@@ -12,9 +12,16 @@ export interface ModelPaths {
 const DETECTOR_FILENAME = 'scrfd_500m_kps.onnx'
 const RECOGNIZER_FILENAME = 'w600k_mbf.onnx'
 
-// Direct model URLs (Hugging Face / GitHub releases)
-const DETECTOR_URL = 'https://huggingface.co/onnx-community/scrfd_500m_kps/resolve/main/onnx/model.onnx'
-const RECOGNIZER_URL = 'https://huggingface.co/onnx-community/w600k_mbf/resolve/main/onnx/model.onnx'
+// InsightFace "buffalo_s" pack, mirrored by the Immich project: SCRFD-500M
+// (detection, 2.5MB) + w600k_mbf / MobileFaceNet ArcFace (recognition, 13.6MB).
+// The onnx-community/* URLs these replaced answered HTTP 401 — every scan died
+// inside ensureModels() and the People view silently fell back to its empty
+// state, which is why "Scan for People" looked like it did nothing at all.
+const DETECTOR_URL = 'https://huggingface.co/immich-app/buffalo_s/resolve/main/detection/model.onnx'
+const RECOGNIZER_URL = 'https://huggingface.co/immich-app/buffalo_s/resolve/main/recognition/model.onnx'
+
+/** Sanity floor so a truncated download or HTML error body is never cached. */
+const MIN_MODEL_BYTES = 1_000_000
 
 export function getModelsDir(): string {
   return path.join(app.getPath('userData'), 'models', 'faces')
@@ -63,6 +70,12 @@ function downloadFile(url: string, destPath: string, onProgress?: (downloaded: n
         fileStream.on('finish', () => {
           fileStream.close(() => {
             try {
+              const bytes = fs.statSync(tmpPath).size
+              if (bytes < MIN_MODEL_BYTES) {
+                fs.unlinkSync(tmpPath)
+                reject(new Error(`Model download truncated (${bytes} bytes from ${currentUrl})`))
+                return
+              }
               fs.renameSync(tmpPath, destPath)
               resolve()
             } catch (err) {

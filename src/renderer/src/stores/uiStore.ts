@@ -16,6 +16,12 @@ interface ConfirmState {
   onConfirm: () => void
 }
 
+export interface Toast {
+  id: number
+  message: string
+  tone: 'info' | 'error'
+}
+
 /** Target tile edge in CSS px, selected by the toolbar zoom slider. */
 export const ZOOM_LEVELS = [80, 110, 150, 200, 260] as const
 
@@ -27,6 +33,7 @@ interface UIState {
   editMode: boolean
   contextMenu: { x: number; y: number; items: ContextMenuItem[] } | null
   confirm: ConfirmState | null
+  toasts: Toast[]
 
   /** Index into ZOOM_LEVELS; default 3 (=200px) */
   zoom: number
@@ -44,11 +51,15 @@ interface UIState {
   closeContextMenu: () => void
   askConfirm: (c: ConfirmState) => void
   closeConfirm: () => void
+  showToast: (message: string, tone?: 'info' | 'error') => void
+  dismissToast: (id: number) => void
 
   setZoom: (i: number) => void
   setAspectMode: (m: 'square' | 'aspect') => void
   setGroupBy: (g: 'years' | 'months' | 'days' | 'all') => void
 }
+
+let toastSeq = 1
 
 export const useUI = create<UIState>((set) => ({
   sidebarCollapsed: false,
@@ -58,6 +69,7 @@ export const useUI = create<UIState>((set) => ({
   editMode: false,
   contextMenu: null,
   confirm: null,
+  toasts: [],
 
   zoom: 3,
   aspectMode: 'square',
@@ -72,6 +84,13 @@ export const useUI = create<UIState>((set) => ({
   closeContextMenu: () => set({ contextMenu: null }),
   askConfirm: (c) => set({ confirm: c }),
   closeConfirm: () => set({ confirm: null }),
+
+  showToast: (message, tone = 'info') => {
+    const id = toastSeq++
+    set((s) => ({ toasts: [...s.toasts, { id, message, tone }] }))
+    setTimeout(() => useUI.getState().dismissToast(id), tone === 'error' ? 6000 : 2600)
+  },
+  dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
 
   setZoom: (i) => set({ zoom: i }),
   setAspectMode: (m) => set({ aspectMode: m }),

@@ -2,7 +2,7 @@ import { app, BrowserWindow, clipboard, dialog, ipcMain, nativeImage, shell } fr
 import fs from 'fs'
 import path from 'path'
 import exifr from 'exifr'
-import { DEFAULT_SETTINGS, THUMB_LADDER, type ThumbPx } from '@shared/types'
+import { DEFAULT_SETTINGS, THUMB_LADDER, type ThumbPx, type CopyResult } from '@shared/types'
 import * as db from '../database'
 import * as fileOps from '../file-ops'
 import { scanAllFolders, discoverSubfolders } from '../scanner'
@@ -143,12 +143,33 @@ export function registerIpc(win: BrowserWindow): void {
     const known = knownPhotoPath(filePath)
     if (known) shell.showItemInFolder(known)
   })
-  ipcMain.handle('photo:copyToClipboard', (_e, filePath: string) => {
+  // Returns what actually landed on the clipboard so the renderer can show a
+  // toast instead of leaving the user staring at a button that did nothing.
+  ipcMain.handle('photo:copyToClipboard', (_e, filePath: string): CopyResult => {
     const known = knownPhotoPath(filePath)
-    if (!known) return
-    const img = nativeImage.createFromPath(known)
-    if (!img.isEmpty()) clipboard.writeImage(img)
-    else clipboard.writeText(known)
+    if (!known) return { ok: false, kind: 'none', error: 'Photo not found in library' }
+    try {
+      let img = nativeImage.createFromPath(known)
+      if (img.isEmpty()) {
+        clipboard.writeText(known)
+        return { ok: true, kind: 'path' }
+      }
+      // Very large decodes are slow to hand to other apps; cap the long edge.
+      const { width, height } = img.getSize()
+      const MAX_EDGE = 4096
+      if (Math.max(width, height) > MAX_EDGE) {
+        img = width >= height ? img.resize({ width: MAX_EDGE }) : img.resize({ height: MAX_EDGE })
+      }
+      clipboard.clear()
+      clipboard.writeImage(img)
+      if (clipboard.readImage().isEmpty()) {
+        clipboard.writeText(known)
+        return { ok: true, kind: 'path' }
+      }
+      return { ok: true, kind: 'image' }
+    } catch (err) {
+      return { ok: false, kind: 'none', error: err instanceof Error ? err.message : String(err) }
+    }
   })
 
   // ----- file ops -----

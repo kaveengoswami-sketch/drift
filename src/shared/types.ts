@@ -161,3 +161,10 @@ export interface FaceScanProgress {
   error?: string
 }
 
+
+/** Outcome of a clipboard copy, so the UI can confirm what actually happened. */
+export interface CopyResult {
+  ok: boolean
+  kind: 'image' | 'path' | 'none'
+  error?: string
+}

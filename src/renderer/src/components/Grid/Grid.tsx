@@ -5,6 +5,7 @@ import type { Photo } from '@shared/types'
 import { pickBucket, type ThumbPx } from '@shared/types'
 import PhotoTile from './PhotoTile'
 import './Grid.css'
+import { copyPhotoToClipboard } from '@/lib/copy'
 
 // ---- layout constants -------------------------------------------------------
 
@@ -573,7 +574,7 @@ export default function Grid(): JSX.Element {
               ]
             : []),
           { label: '', separator: true },
-          { label: 'Copy image', action: () => window.drift.copyToClipboard(photo.path) },
+          { label: 'Copy image', action: () => copyPhotoToClipboard(photo.path) },
           { label: 'Show in Explorer', action: () => window.drift.showInExplorer(photo.path) },
           ...(!many
             ? [

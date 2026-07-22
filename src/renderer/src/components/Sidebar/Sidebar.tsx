@@ -330,12 +330,11 @@ export default function Sidebar(): JSX.Element {
             </Section>
           </div>
 
-          <div className="sb-footer" style={{ padding: '8px 12px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          <div className="sb-footer">
             <button
               className="sb-item sb-settings-btn"
               onClick={() => setSettingsOpen(true)}
               title="Settings (Ctrl+,)"
-              style={{ width: '100%' }}
             >
               <span className="sb-icon">
                 <IconSettings />

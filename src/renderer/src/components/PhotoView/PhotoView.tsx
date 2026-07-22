@@ -6,6 +6,7 @@ import type { Face } from '@shared/types'
 import InfoPanel from '../InfoPanel/InfoPanel'
 import Editor from '../Editor/Editor'
 import './PhotoView.css'
+import { copyPhotoToClipboard } from '@/lib/copy'
 
 const SPRING = { type: 'spring', stiffness: 320, damping: 26 } as const
 const MAX_ZOOM = 8
@@ -366,7 +367,7 @@ export default function PhotoView(): JSX.Element {
                 </svg>
               </button>
             )}
-            <button className="icon-btn" onClick={() => window.drift.copyToClipboard(photo.path)} title="Copy to clipboard (Ctrl+C)">
+            <button className="icon-btn" onClick={() => copyPhotoToClipboard(photo.path)} title="Copy to clipboard (Ctrl+C)">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4">
                 <rect x="5" y="5" width="9" height="9" rx="1.5" />
                 <path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5" />

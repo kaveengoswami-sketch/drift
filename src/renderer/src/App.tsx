@@ -11,9 +11,11 @@ import Settings from './components/Settings/Settings'
 import FirstRun from './components/FirstRun/FirstRun'
 import ContextMenu from './components/common/ContextMenu'
 import ConfirmDialog from './components/common/ConfirmDialog'
+import Toasts from './components/Toast/Toasts'
 import ScanBanner from './components/common/ScanBanner'
 import PeopleView from './components/People/PeopleView'
 import './App.css'
+import { copyPhotoToClipboard } from './lib/copy'
 
 export default function App(): JSX.Element {
   const settings = useLibrary((s) => s.settings)
@@ -76,7 +78,7 @@ export default function App(): JSX.Element {
       if (e.ctrlKey && e.key.toLowerCase() === 'c') {
         const p =
           lib.viewerIndex !== null ? lib.photos[lib.viewerIndex] : lib.photos.find((ph) => lib.selection.has(ph.id))
-        if (p) window.drift.copyToClipboard(p.path)
+        if (p) copyPhotoToClipboard(p.path)
         return
       }
       if (e.key.toLowerCase() === 'f' && !e.ctrlKey) {
@@ -146,6 +148,7 @@ export default function App(): JSX.Element {
       {settingsOpen && <Settings />}
       {contextMenu && <ContextMenu />}
       {confirm && <ConfirmDialog />}
+      <Toasts />
     </div>
   )
 }

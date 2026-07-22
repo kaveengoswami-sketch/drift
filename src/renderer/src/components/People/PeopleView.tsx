@@ -9,6 +9,7 @@ export default function PeopleView(): JSX.Element {
   const setQuery = useLibrary((s) => s.setQuery)
   const askConfirm = useUI((s) => s.askConfirm)
   const openContextMenu = useUI((s) => s.openContextMenu)
+  const showToast = useUI((s) => s.showToast)
 
   const [people, setPeople] = useState<Person[]>([])
   const [loading, setLoading] = useState(true)
@@ -169,7 +170,19 @@ export default function PeopleView(): JSX.Element {
   }
 
   const handleStartScan = async (): Promise<void> => {
-    await window.drift.startFaceScan()
+    // A failing scan used to resolve to an 'error' progress object that nothing
+    // rendered, so the hero card just sat there and the button looked dead.
+    try {
+      const res = (await window.drift.startFaceScan()) as FaceScanProgress | undefined
+      if (res) setScanProgress(res)
+      if (res?.phase === 'error') {
+        showToast(res.error ? `Face scan failed: ${res.error}` : 'Face scan failed', 'error')
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      setScanProgress({ scanned: 0, total: 0, facesFound: 0, phase: 'error', error: message })
+      showToast(`Face scan failed: ${message}`, 'error')
+    }
   }
 
   const handleCancelScan = async (): Promise<void> => {
@@ -275,6 +288,13 @@ export default function PeopleView(): JSX.Element {
             Drift scans your photos to recognize faces and automatically group them by person.
             All processing is performed 100% locally on your computer — your photos are never sent to any cloud server.
           </p>
+
+          {scanProgress?.phase === 'error' && (
+            <div className="people-scan-error">
+              <strong>Last scan failed.</strong>
+              <span>{scanProgress.error || 'Unknown error'}</span>
+            </div>
+          )}
 
           <button className="people-hero-scan-btn" onClick={handleStartScan}>
             <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6">
