@@ -43,6 +43,7 @@ function migrate(d: DatabaseSync): void {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       path TEXT NOT NULL UNIQUE,
       filename TEXT NOT NULL,
+      relPath TEXT,
       folderId INTEGER NOT NULL REFERENCES folders(id) ON DELETE CASCADE,
       size INTEGER NOT NULL,
       width INTEGER NOT NULL DEFAULT 0,
@@ -64,6 +65,7 @@ function migrate(d: DatabaseSync): void {
     CREATE INDEX IF NOT EXISTS idx_photos_addedAt ON photos(addedAt DESC);
     CREATE INDEX IF NOT EXISTS idx_photos_lastViewedAt ON photos(lastViewedAt DESC);
     CREATE INDEX IF NOT EXISTS idx_photos_path ON photos(path);
+    CREATE INDEX IF NOT EXISTS idx_photos_relPath ON photos(relPath);
     CREATE TABLE IF NOT EXISTS albums (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
@@ -117,6 +119,38 @@ function migrate(d: DatabaseSync): void {
       scannedAt INTEGER NOT NULL
     );
   `)
+
+  try {
+    d.exec('ALTER TABLE photos ADD COLUMN relPath TEXT')
+  } catch {
+    // column already exists
+  }
+
+  // Backfill relPath for existing photos using folder paths
+  const unpopulated = d.prepare(`
+    SELECT p.id, p.path, f.path as folderPath
+    FROM photos p
+    JOIN folders f ON f.id = p.folderId
+    WHERE p.relPath IS NULL
+  `).all() as unknown as Array<{ id: number; path: string; folderPath: string }>
+
+  if (unpopulated.length > 0) {
+    const updateStmt = d.prepare('UPDATE photos SET relPath = ? WHERE id = ?')
+    d.exec('BEGIN')
+    try {
+      for (const r of unpopulated) {
+        let rel = r.path
+        if (r.folderPath && r.path.startsWith(r.folderPath)) {
+          rel = r.path.slice(r.folderPath.length).replace(/^[/\\]+/, '')
+        }
+        updateStmt.run(rel, r.id)
+      }
+      d.exec('COMMIT')
+    } catch (e) {
+      d.exec('ROLLBACK')
+      throw e
+    }
+  }
 }
 
 // ---------- settings ----------
@@ -162,6 +196,7 @@ export function removeFolder(id: number): void {
 export interface PhotoUpsert {
   path: string
   filename: string
+  relPath: string
   folderId: number
   size: number
   width: number
@@ -175,9 +210,10 @@ export interface PhotoUpsert {
 
 export function upsertPhotos(photos: PhotoUpsert[]): void {
   const stmt = getDb().prepare(`
-    INSERT INTO photos (path, filename, folderId, size, width, height, type, dateTaken, dateModified, duration, hash, addedAt)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO photos (path, filename, relPath, folderId, size, width, height, type, dateTaken, dateModified, duration, hash, addedAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(path) DO UPDATE SET
+      filename = excluded.filename, relPath = excluded.relPath,
       size = excluded.size, width = excluded.width, height = excluded.height,
       dateTaken = excluded.dateTaken, dateModified = excluded.dateModified,
       duration = excluded.duration, hash = excluded.hash
@@ -185,7 +221,7 @@ export function upsertPhotos(photos: PhotoUpsert[]): void {
   const now = Date.now()
   tx(() => {
     for (const r of photos) {
-      stmt.run(r.path, r.filename, r.folderId, r.size, r.width, r.height, r.type, r.dateTaken, r.dateModified, r.duration, r.hash, now)
+      stmt.run(r.path, r.filename, r.relPath, r.folderId, r.size, r.width, r.height, r.type, r.dateTaken, r.dateModified, r.duration, r.hash, now)
     }
   })
 }
@@ -220,56 +256,65 @@ export function queryPhotos(q: {
   const d = getDb()
   const trimmedSearch = q.search ? q.search.trim() : ''
   const searchPattern = trimmedSearch ? '%' + trimmedSearch.replace(/([%_\\])/g, '\\$1') + '%' : null
+  const searchParams = searchPattern ? Array(5).fill(searchPattern) : []
+
+  const SEARCH_MATCH_SQL = `(
+    p.filename LIKE ? ESCAPE '\\' OR
+    p.relPath LIKE ? ESCAPE '\\' OR
+    REPLACE(p.relPath, '\\', '/') LIKE ? ESCAPE '\\' OR
+    p.id IN (SELECT pt.photoId FROM photo_tags pt JOIN tags t ON t.id = pt.tagId WHERE t.name LIKE ? ESCAPE '\\') OR
+    p.id IN (SELECT ap.photoId FROM album_photos ap JOIN albums a ON a.id = ap.albumId WHERE a.name LIKE ? ESCAPE '\\')
+  )`
 
   switch (q.view) {
     case 'favorites':
       if (searchPattern) {
         return d
-          .prepare("SELECT * FROM photos WHERE favorite = 1 AND trashedAt IS NULL AND (filename LIKE ? ESCAPE '\\' OR path LIKE ? ESCAPE '\\') ORDER BY dateTaken DESC")
-          .all(searchPattern, searchPattern) as unknown as Photo[]
+          .prepare(`SELECT p.* FROM photos p WHERE p.favorite = 1 AND p.trashedAt IS NULL AND ${SEARCH_MATCH_SQL} ORDER BY p.dateTaken DESC`)
+          .all(...searchParams) as unknown as Photo[]
       }
-      return d.prepare('SELECT * FROM photos WHERE favorite = 1 AND trashedAt IS NULL ORDER BY dateTaken DESC').all() as unknown as Photo[]
+      return d.prepare('SELECT p.* FROM photos p WHERE p.favorite = 1 AND p.trashedAt IS NULL ORDER BY p.dateTaken DESC').all() as unknown as Photo[]
 
     case 'recent-added':
       if (searchPattern) {
         return d
-          .prepare("SELECT * FROM photos WHERE trashedAt IS NULL AND (filename LIKE ? ESCAPE '\\' OR path LIKE ? ESCAPE '\\') ORDER BY addedAt DESC, dateTaken DESC LIMIT 2000")
-          .all(searchPattern, searchPattern) as unknown as Photo[]
+          .prepare(`SELECT p.* FROM photos p WHERE p.trashedAt IS NULL AND ${SEARCH_MATCH_SQL} ORDER BY p.addedAt DESC, p.dateTaken DESC LIMIT 2000`)
+          .all(...searchParams) as unknown as Photo[]
       }
-      return d.prepare('SELECT * FROM photos WHERE trashedAt IS NULL ORDER BY addedAt DESC, dateTaken DESC LIMIT 2000').all() as unknown as Photo[]
+      return d.prepare('SELECT p.* FROM photos p WHERE p.trashedAt IS NULL ORDER BY p.addedAt DESC, p.dateTaken DESC LIMIT 2000').all() as unknown as Photo[]
 
     case 'recent-viewed':
       if (searchPattern) {
         return d
-          .prepare("SELECT * FROM photos WHERE lastViewedAt IS NOT NULL AND trashedAt IS NULL AND (filename LIKE ? ESCAPE '\\' OR path LIKE ? ESCAPE '\\') ORDER BY lastViewedAt DESC LIMIT 500")
-          .all(searchPattern, searchPattern) as unknown as Photo[]
+          .prepare(`SELECT p.* FROM photos p WHERE p.lastViewedAt IS NOT NULL AND p.trashedAt IS NULL AND ${SEARCH_MATCH_SQL} ORDER BY p.lastViewedAt DESC LIMIT 500`)
+          .all(...searchParams) as unknown as Photo[]
       }
-      return d.prepare('SELECT * FROM photos WHERE lastViewedAt IS NOT NULL AND trashedAt IS NULL ORDER BY lastViewedAt DESC LIMIT 500').all() as unknown as Photo[]
+      return d.prepare('SELECT p.* FROM photos p WHERE p.lastViewedAt IS NOT NULL AND p.trashedAt IS NULL ORDER BY p.lastViewedAt DESC LIMIT 500').all() as unknown as Photo[]
 
     case 'videos':
       if (searchPattern) {
         return d
-          .prepare("SELECT * FROM photos WHERE type = 'video' AND trashedAt IS NULL AND (filename LIKE ? ESCAPE '\\' OR path LIKE ? ESCAPE '\\') ORDER BY dateTaken DESC")
-          .all(searchPattern, searchPattern) as unknown as Photo[]
+          .prepare(`SELECT p.* FROM photos p WHERE p.type = 'video' AND p.trashedAt IS NULL AND ${SEARCH_MATCH_SQL} ORDER BY p.dateTaken DESC`)
+          .all(...searchParams) as unknown as Photo[]
       }
-      return d.prepare("SELECT * FROM photos WHERE type = 'video' AND trashedAt IS NULL ORDER BY dateTaken DESC").all() as unknown as Photo[]
+      return d.prepare("SELECT p.* FROM photos p WHERE p.type = 'video' AND p.trashedAt IS NULL ORDER BY p.dateTaken DESC").all() as unknown as Photo[]
 
     case 'trash':
       if (searchPattern) {
         return d
-          .prepare("SELECT * FROM photos WHERE trashedAt IS NOT NULL AND (filename LIKE ? ESCAPE '\\' OR path LIKE ? ESCAPE '\\') ORDER BY trashedAt DESC")
-          .all(searchPattern, searchPattern) as unknown as Photo[]
+          .prepare(`SELECT p.* FROM photos p WHERE p.trashedAt IS NOT NULL AND ${SEARCH_MATCH_SQL} ORDER BY p.trashedAt DESC`)
+          .all(...searchParams) as unknown as Photo[]
       }
-      return d.prepare('SELECT * FROM photos WHERE trashedAt IS NOT NULL ORDER BY trashedAt DESC').all() as unknown as Photo[]
+      return d.prepare('SELECT p.* FROM photos p WHERE p.trashedAt IS NOT NULL ORDER BY p.trashedAt DESC').all() as unknown as Photo[]
 
     case 'album':
       if (searchPattern) {
         return d
           .prepare(
             `SELECT p.* FROM photos p JOIN album_photos ap ON ap.photoId = p.id
-             WHERE ap.albumId = ? AND p.trashedAt IS NULL AND (p.filename LIKE ? ESCAPE '\\' OR p.path LIKE ? ESCAPE '\\') ORDER BY ap.sortOrder, p.dateTaken DESC`
+             WHERE ap.albumId = ? AND p.trashedAt IS NULL AND ${SEARCH_MATCH_SQL} ORDER BY ap.sortOrder, p.dateTaken DESC`
           )
-          .all(q.albumId!, searchPattern, searchPattern) as unknown as Photo[]
+          .all(q.albumId!, ...searchParams) as unknown as Photo[]
       }
       return d
         .prepare(
@@ -283,19 +328,19 @@ export function queryPhotos(q: {
         const prefix = q.folderPathPrefix.replace(/([%_\\])/g, '\\$1') + '%'
         if (searchPattern) {
           return d
-            .prepare("SELECT * FROM photos WHERE path LIKE ? ESCAPE '\\' AND trashedAt IS NULL AND (filename LIKE ? ESCAPE '\\' OR path LIKE ? ESCAPE '\\') ORDER BY dateTaken DESC")
-            .all(prefix, searchPattern, searchPattern) as unknown as Photo[]
+            .prepare(`SELECT p.* FROM photos p WHERE p.path LIKE ? ESCAPE '\\' AND p.trashedAt IS NULL AND ${SEARCH_MATCH_SQL} ORDER BY p.dateTaken DESC`)
+            .all(prefix, ...searchParams) as unknown as Photo[]
         }
         return d
-          .prepare("SELECT * FROM photos WHERE path LIKE ? ESCAPE '\\' AND trashedAt IS NULL ORDER BY dateTaken DESC")
+          .prepare("SELECT p.* FROM photos p WHERE p.path LIKE ? ESCAPE '\\' AND p.trashedAt IS NULL ORDER BY p.dateTaken DESC")
           .all(prefix) as unknown as Photo[]
       }
       if (searchPattern) {
         return d
-          .prepare("SELECT * FROM photos WHERE folderId = ? AND trashedAt IS NULL AND (filename LIKE ? ESCAPE '\\' OR path LIKE ? ESCAPE '\\') ORDER BY dateTaken DESC")
-          .all(q.folderId!, searchPattern, searchPattern) as unknown as Photo[]
+          .prepare(`SELECT p.* FROM photos p WHERE p.folderId = ? AND p.trashedAt IS NULL AND ${SEARCH_MATCH_SQL} ORDER BY p.dateTaken DESC`)
+          .all(q.folderId!, ...searchParams) as unknown as Photo[]
       }
-      return d.prepare('SELECT * FROM photos WHERE folderId = ? AND trashedAt IS NULL ORDER BY dateTaken DESC').all(q.folderId!) as unknown as Photo[]
+      return d.prepare('SELECT p.* FROM photos p WHERE p.folderId = ? AND p.trashedAt IS NULL ORDER BY p.dateTaken DESC').all(q.folderId!) as unknown as Photo[]
 
     default: {
       if (q.tag) {
@@ -304,9 +349,9 @@ export function queryPhotos(q: {
             .prepare(
               `SELECT p.* FROM photos p
                JOIN photo_tags pt ON pt.photoId = p.id JOIN tags t ON t.id = pt.tagId
-               WHERE t.name = ? AND p.trashedAt IS NULL AND (p.filename LIKE ? ESCAPE '\\' OR p.path LIKE ? ESCAPE '\\') ORDER BY p.dateTaken DESC`
+               WHERE t.name = ? AND p.trashedAt IS NULL AND ${SEARCH_MATCH_SQL} ORDER BY p.dateTaken DESC`
             )
-            .all(q.tag, searchPattern, searchPattern) as unknown as Photo[]
+            .all(q.tag, ...searchParams) as unknown as Photo[]
         }
         return d
           .prepare(
@@ -318,10 +363,10 @@ export function queryPhotos(q: {
       }
       if (searchPattern) {
         return d
-          .prepare("SELECT * FROM photos WHERE trashedAt IS NULL AND (filename LIKE ? ESCAPE '\\' OR path LIKE ? ESCAPE '\\') ORDER BY dateTaken DESC")
-          .all(searchPattern, searchPattern) as unknown as Photo[]
+          .prepare(`SELECT p.* FROM photos p WHERE p.trashedAt IS NULL AND ${SEARCH_MATCH_SQL} ORDER BY p.dateTaken DESC`)
+          .all(...searchParams) as unknown as Photo[]
       }
-      return d.prepare('SELECT * FROM photos WHERE trashedAt IS NULL ORDER BY dateTaken DESC').all() as unknown as Photo[]
+      return d.prepare('SELECT p.* FROM photos p WHERE p.trashedAt IS NULL ORDER BY p.dateTaken DESC').all() as unknown as Photo[]
     }
   }
 }
@@ -454,7 +499,16 @@ export function getExpiredTrash(days: number): Photo[] {
 }
 
 export function updatePhotoPath(id: number, newPath: string, newFilename: string): void {
-  getDb().prepare('UPDATE photos SET path = ?, filename = ? WHERE id = ?').run(newPath, newFilename, id)
+  const d = getDb()
+  const photo = getPhoto(id)
+  let relPath = newFilename
+  if (photo) {
+    const folder = d.prepare('SELECT path FROM folders WHERE id = ?').get(photo.folderId) as unknown as { path: string } | undefined
+    if (folder && newPath.startsWith(folder.path)) {
+      relPath = newPath.slice(folder.path.length).replace(/^[/\\]+/, '')
+    }
+  }
+  d.prepare('UPDATE photos SET path = ?, filename = ?, relPath = ? WHERE id = ?').run(newPath, newFilename, relPath, id)
 }
 
 // ---------- faces & people ----------

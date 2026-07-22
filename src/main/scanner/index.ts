@@ -156,9 +156,14 @@ export async function scanAllFolders(win: BrowserWindow): Promise<void> {
         const ext = path.extname(filePath).toLowerCase()
         const isVideo = VIDEO_EXTS.has(ext)
         const { date, width, height } = await extractDateTaken(filePath, ext, Math.floor(stat.birthtimeMs || stat.mtimeMs))
+        let relPath = path.basename(filePath)
+        if (filePath.startsWith(folder.path)) {
+          relPath = filePath.slice(folder.path.length).replace(/^[/\\]+/, '')
+        }
         toUpsert.push({
           path: filePath,
           filename: path.basename(filePath),
+          relPath,
           folderId: folder.id,
           size: stat.size,
           width,

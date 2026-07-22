@@ -6,6 +6,7 @@ export interface Photo {
   id: number
   path: string
   filename: string
+  relPath?: string
   folderId: number
   size: number
   width: number
@@ -60,6 +61,8 @@ export interface LibraryQuery {
   folderPathPrefix?: string
   tag?: string
   search?: string
+  personId?: number
+  personName?: string
 }
 
 export type ViewKey =
@@ -71,6 +74,8 @@ export type ViewKey =
   | 'trash'
   | 'album'
   | 'folder'
+  | 'people'
+  | 'person'
 
 export interface Settings {
   theme: 'dark' | 'light'
