@@ -3,9 +3,9 @@
 .sidebar {
   width: var(--sidebar-w);
   flex: 0 0 auto;
-  background: rgba(35, 35, 37, 0.78);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: var(--glass-bg-sidebar);
+  backdrop-filter: blur(var(--glass-blur-chrome)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--glass-blur-chrome)) saturate(180%);
   border-right: 1px solid var(--separator);
   overflow: hidden;
   z-index: 10;
@@ -96,6 +96,7 @@
 .sb-item.active {
   background: var(--bg-selected);
   color: var(--text-primary);
+  font-weight: 500;
 }
 /* Selected icon takes accent color */
 .sb-item.active .sb-icon {

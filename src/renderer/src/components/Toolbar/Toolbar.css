@@ -2,11 +2,11 @@
 
 .toolbar {
   height: var(--toolbar-h);
-  background: rgba(42, 42, 44, 0.78);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: var(--glass-bg-toolbar);
+  backdrop-filter: blur(var(--glass-blur-chrome)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--glass-blur-chrome)) saturate(180%);
   border-bottom: 1px solid var(--separator);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: var(--glass-highlight);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -123,7 +123,8 @@
 .tb-segments {
   display: flex;
   align-items: center;
-  background: rgba(255,255,255,0.08);
+  background: var(--bg-hover);
+  border: 1px solid var(--separator);
   border-radius: var(--r-pill);
   padding: 2px;
   gap: 0;
@@ -147,9 +148,9 @@
   color: var(--text-primary);
 }
 .tb-segment.selected {
-  background: rgba(255,255,255,0.18);
+  background: var(--bg-elevated);
   color: var(--text-primary);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.35);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
 }
 
 /* ---- search field ---- */
@@ -178,18 +179,16 @@
   outline: none;
   transition: border-color var(--dur-fast) var(--ease-spatial),
               background var(--dur-fast) var(--ease-spatial);
-  /* remove native clear button styling */
   -webkit-appearance: none;
   appearance: none;
 }
 .tb-search-input:focus {
   border-color: var(--accent);
-  background: var(--bg-active);
+  background: var(--bg-elevated);
 }
 .tb-search-input::placeholder {
   color: var(--text-tertiary);
 }
-/* hide the native search cancel button */
 .tb-search-input::-webkit-search-cancel-button {
   display: none;
 }

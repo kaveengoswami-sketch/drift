@@ -10,9 +10,11 @@
   min-width: 190px;
   border-radius: var(--r-lg);
   padding: 5px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-strong);
-  box-shadow: var(--shadow);
+  background: var(--glass-bg-modal);
+  backdrop-filter: blur(var(--glass-blur-modal)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--glass-blur-modal)) saturate(180%);
+  border: 1px solid var(--glass-border-color);
+  box-shadow: var(--modal-shadow);
   z-index: 301;
 }
 
@@ -67,9 +69,11 @@
   overflow-y: auto;
   border-radius: var(--r-lg);
   padding: 5px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-strong);
-  box-shadow: var(--shadow);
+  background: var(--glass-bg-modal);
+  backdrop-filter: blur(var(--glass-blur-modal)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--glass-blur-modal)) saturate(180%);
+  border: 1px solid var(--glass-border-color);
+  box-shadow: var(--modal-shadow);
 }
 
 .ctx-empty {
@@ -79,12 +83,14 @@
   font-style: italic;
 }
 
-/* confirm dialog */
+/* confirm dialog & modal backdrop scrim */
 .dlg-backdrop {
   position: fixed;
   inset: 0;
   z-index: 400;
-  background: rgba(0,0,0,0.45);
+  background: var(--glass-scrim);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -94,9 +100,11 @@
   width: 360px;
   border-radius: var(--r-lg);
   padding: 22px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-strong);
-  box-shadow: var(--shadow);
+  background: var(--glass-bg-modal);
+  backdrop-filter: blur(var(--glass-blur-modal)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--glass-blur-modal)) saturate(180%);
+  border: 1px solid var(--glass-border-color);
+  box-shadow: var(--modal-shadow);
 }
 
 .dlg-title {
@@ -135,10 +143,12 @@
   padding: 9px 18px;
   border-radius: var(--r-lg);
   font-size: var(--fs-body);
-  color: var(--text-secondary);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-strong);
-  box-shadow: var(--shadow);
+  color: var(--text-primary);
+  background: var(--glass-bg-modal);
+  backdrop-filter: blur(var(--glass-blur-chrome)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--glass-blur-chrome)) saturate(180%);
+  border: 1px solid var(--glass-border-color);
+  box-shadow: var(--modal-shadow);
   z-index: 90;
   max-width: 70vw;
   white-space: nowrap;

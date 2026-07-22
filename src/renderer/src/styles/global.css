@@ -1,19 +1,32 @@
-/* Drift design system -- Apple Photos macOS dark aesthetic */
+/* Drift design system -- Apple Photos macOS dark/light aesthetic */
 
-:root {
+:root,
+:root[data-theme="dark"] {
   /* ---- surfaces (macOS dark) ---- */
-  --bg-content:      #1c1c1e;
-  --bg-sidebar:      #232325;
-  --bg-toolbar:      #2a2a2c;
-  --bg-elevated:     #303032;
-  --bg-hover:        rgba(255,255,255,0.07);
-  --bg-active:       rgba(255,255,255,0.12);
-  --bg-selected:     rgba(255,255,255,0.14);
+  --bg-content:      #18181a;
+  --bg-sidebar:      rgba(28, 28, 30, 0.88);
+  --bg-toolbar:      rgba(34, 34, 36, 0.88);
+  --bg-modal:        rgba(28, 28, 32, 0.92);
+  --bg-elevated:     #2c2c2e;
+  --bg-hover:        rgba(255, 255, 255, 0.08);
+  --bg-active:       rgba(255, 255, 255, 0.14);
+  --bg-selected:     rgba(255, 255, 255, 0.16);
+
+  /* ---- backdrop & glass ---- */
+  --glass-bg-modal:    rgba(28, 28, 32, 0.92);
+  --glass-bg-sidebar:  rgba(28, 28, 30, 0.88);
+  --glass-bg-toolbar:  rgba(34, 34, 36, 0.88);
+  --glass-scrim:       rgba(0, 0, 0, 0.65);
+  --glass-blur-modal:  40px;
+  --glass-blur-chrome: 30px;
+  --glass-border-color: rgba(255, 255, 255, 0.15);
+  --glass-highlight:   inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  --modal-shadow:      0 20px 48px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 
   /* ---- text ---- */
-  --text-primary:    rgba(255,255,255,0.92);
-  --text-secondary:  rgba(255,255,255,0.55);
-  --text-tertiary:   rgba(255,255,255,0.35);
+  --text-primary:    rgba(255, 255, 255, 0.94);
+  --text-secondary:  rgba(255, 255, 255, 0.62);
+  --text-tertiary:   rgba(255, 255, 255, 0.42);
 
   /* ---- accent (macOS dark blue) ---- */
   --accent:          #0A84FF;
@@ -21,8 +34,8 @@
   --accent-text:     #ffffff;
 
   /* ---- lines ---- */
-  --separator:       rgba(255,255,255,0.10);
-  --border-strong:   rgba(255,255,255,0.16);
+  --separator:       rgba(255, 255, 255, 0.10);
+  --border-strong:   rgba(255, 255, 255, 0.16);
 
   /* ---- radii ---- */
   --r-sm: 4px;
@@ -52,7 +65,7 @@
      system so those screens keep rendering correctly; without them every
      colour in those files resolves to nothing and the panels render
      unstyled. Delete each alias once its consumers are migrated. */
-  --shadow:          0 8px 32px rgba(0,0,0,0.45);
+  --shadow:          0 20px 48px rgba(0, 0, 0, 0.6);
   --text-1:          var(--text-primary);
   --text-2:          var(--text-secondary);
   --text-3:          var(--text-tertiary);
@@ -63,27 +76,69 @@
   --accent-soft:     rgba(10, 132, 255, 0.25);
 }
 
-/* Light mode token overrides */
+/* Light mode overrides */
 @media (prefers-color-scheme: light) {
-  :root {
-    --bg-content:      #ffffff;
-    --bg-sidebar:      #f5f5f7;
-    --bg-toolbar:      #ececee;
+  :root:not([data-theme="dark"]) {
+    --bg-content:      #f8f8fa;
+    --bg-sidebar:      rgba(242, 242, 247, 0.90);
+    --bg-toolbar:      rgba(238, 238, 242, 0.90);
+    --bg-modal:        rgba(252, 252, 254, 0.95);
     --bg-elevated:     #ffffff;
-    --bg-hover:        rgba(0,0,0,0.05);
-    --bg-active:       rgba(0,0,0,0.09);
-    --bg-selected:     rgba(0,0,0,0.08);
+    --bg-hover:        rgba(0, 0, 0, 0.05);
+    --bg-active:       rgba(0, 0, 0, 0.09);
+    --bg-selected:     rgba(0, 0, 0, 0.08);
 
-    --text-primary:    rgba(0,0,0,0.85);
-    --text-secondary:  rgba(0,0,0,0.55);
-    --text-tertiary:   rgba(0,0,0,0.35);
+    --glass-bg-modal:    rgba(252, 252, 254, 0.95);
+    --glass-bg-sidebar:  rgba(242, 242, 247, 0.90);
+    --glass-bg-toolbar:  rgba(238, 238, 242, 0.90);
+    --glass-scrim:       rgba(0, 0, 0, 0.45);
+    --glass-border-color: rgba(0, 0, 0, 0.12);
+    --glass-highlight:   inset 0 1px 0 rgba(255, 255, 255, 0.80);
+    --modal-shadow:      0 20px 48px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.80);
+
+    --text-primary:    rgba(0, 0, 0, 0.88);
+    --text-secondary:  rgba(0, 0, 0, 0.60);
+    --text-tertiary:   rgba(0, 0, 0, 0.40);
 
     --accent:          #007AFF;
     --accent-hover:    #0066CC;
 
-    --separator:       rgba(0,0,0,0.10);
-    --border-strong:   rgba(0,0,0,0.16);
+    --separator:       rgba(0, 0, 0, 0.10);
+    --border-strong:   rgba(0, 0, 0, 0.14);
+
+    --shadow:          0 20px 48px rgba(0, 0, 0, 0.25);
   }
+}
+
+:root[data-theme="light"] {
+  --bg-content:      #f8f8fa;
+  --bg-sidebar:      rgba(242, 242, 247, 0.90);
+  --bg-toolbar:      rgba(238, 238, 242, 0.90);
+  --bg-modal:        rgba(252, 252, 254, 0.95);
+  --bg-elevated:     #ffffff;
+  --bg-hover:        rgba(0, 0, 0, 0.05);
+  --bg-active:       rgba(0, 0, 0, 0.09);
+  --bg-selected:     rgba(0, 0, 0, 0.08);
+
+  --glass-bg-modal:    rgba(252, 252, 254, 0.95);
+  --glass-bg-sidebar:  rgba(242, 242, 247, 0.90);
+  --glass-bg-toolbar:  rgba(238, 238, 242, 0.90);
+  --glass-scrim:       rgba(0, 0, 0, 0.45);
+  --glass-border-color: rgba(0, 0, 0, 0.12);
+  --glass-highlight:   inset 0 1px 0 rgba(255, 255, 255, 0.80);
+  --modal-shadow:      0 20px 48px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.80);
+
+  --text-primary:    rgba(0, 0, 0, 0.88);
+  --text-secondary:  rgba(0, 0, 0, 0.60);
+  --text-tertiary:   rgba(0, 0, 0, 0.40);
+
+  --accent:          #007AFF;
+  --accent-hover:    #0066CC;
+
+  --separator:       rgba(0, 0, 0, 0.10);
+  --border-strong:   rgba(0, 0, 0, 0.14);
+
+  --shadow:          0 20px 48px rgba(0, 0, 0, 0.25);
 }
 
 /* ---- resets ---- */
@@ -184,6 +239,15 @@ input:focus {
 .icon-btn.active {
   color: var(--accent);
   background: var(--bg-active);
+}
+
+/* Frosted glass utility class */
+.glass {
+  background: var(--glass-bg-modal);
+  backdrop-filter: blur(var(--glass-blur-modal)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--glass-blur-modal)) saturate(180%);
+  border: 1px solid var(--glass-border-color);
+  box-shadow: var(--modal-shadow);
 }
 
 .no-anim * {
