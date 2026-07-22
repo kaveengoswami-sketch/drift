@@ -59,6 +59,15 @@ function IconTrash(): JSX.Element {
   )
 }
 
+function IconLock(): JSX.Element {
+  return (
+    <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <rect x="3" y="7" width="10" height="7" rx="1.5" />
+      <path d="M5 7V4.5a3 3 0 0 1 6 0V7" />
+    </svg>
+  )
+}
+
 function IconFolder(): JSX.Element {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3">
@@ -80,13 +89,13 @@ function IconBook(): JSX.Element {
 
 /* ------------------------------------------------------------------ */
 
-const LIBRARY_ITEMS: { key: LibraryQuery; label: string; Icon: () => JSX.Element }[] = [
+const LIBRARY_ITEMS: { key: LibraryQuery; label: string; Icon: () => JSX.Element; isLocked?: boolean }[] = [
   { key: { view: 'all' },           label: 'All Photos',      Icon: IconPhotos },
   { key: { view: 'favorites' },     label: 'Favorites',       Icon: IconHeart },
   { key: { view: 'recent-added' },  label: 'Recently Added',  Icon: IconClock },
   { key: { view: 'recent-viewed' }, label: 'Recently Viewed', Icon: IconEye },
   { key: { view: 'videos' },        label: 'Videos',          Icon: IconVideo },
-  { key: { view: 'trash' },         label: 'Recently Deleted',Icon: IconTrash }
+  { key: { view: 'trash' },         label: 'Recently Deleted',Icon: IconTrash, isLocked: true }
 ]
 
 function Section({
@@ -200,7 +209,12 @@ export default function Sidebar(): JSX.Element {
                   <span className="sb-icon">
                     <item.Icon />
                   </span>
-                  {item.label}
+                  <span className="sb-label">{item.label}</span>
+                  {item.isLocked && (
+                    <span className="sb-lock-icon" title="Protected">
+                      <IconLock />
+                    </span>
+                  )}
                 </button>
               ))}
             </Section>

@@ -2,8 +2,11 @@
 
 .toolbar {
   height: var(--toolbar-h);
-  background: var(--bg-toolbar);
+  background: rgba(42, 42, 44, 0.78);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-bottom: 1px solid var(--separator);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -30,6 +33,28 @@
 
 .toolbar-left {
   flex: 0 0 auto;
+  gap: 8px;
+}
+
+.tb-title-block {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-left: 4px;
+  line-height: 1.15;
+}
+
+.tb-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.tb-subtitle {
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  font-weight: 400;
 }
 
 .toolbar-center {

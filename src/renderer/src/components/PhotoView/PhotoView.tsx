@@ -191,7 +191,13 @@ export default function PhotoView(): JSX.Element {
               ) : (
                 <>
                   {/* progressive: large thumb underneath, original fades in on load */}
-                  <img className="viewer-media" src={`thumb://t/1024/${photo.hash}`} draggable={false} alt="" style={{ opacity: fullLoaded ? 0 : 1, position: fullLoaded ? 'absolute' : 'static' }} />
+                  <img
+                    className="viewer-media"
+                    src={`thumb://t/1024/${photo.hash}`}
+                    draggable={false}
+                    alt=""
+                    style={{ opacity: fullLoaded ? 0 : 1, position: fullLoaded ? 'absolute' : 'relative', inset: 0 }}
+                  />
                   <img
                     ref={imgRef}
                     className="viewer-media"
@@ -199,7 +205,7 @@ export default function PhotoView(): JSX.Element {
                     draggable={false}
                     alt=""
                     onLoad={() => setFullLoaded(true)}
-                    style={{ opacity: fullLoaded ? 1 : 0, position: fullLoaded ? 'static' : 'absolute' }}
+                    style={{ opacity: fullLoaded ? 1 : 0, position: fullLoaded ? 'relative' : 'absolute', inset: 0 }}
                   />
                 </>
               )}

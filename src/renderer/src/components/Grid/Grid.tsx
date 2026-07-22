@@ -242,10 +242,10 @@ export default function Grid(): JSX.Element {
 
   // ---- Build row layout -------------------------------------------------------
 
-  const { rows, totalHeight } = useMemo(() => {
+  const { rows, footerY, totalHeight } = useMemo(() => {
     const rows: Row[] = []
     let y = PAD
-    if (!photos.length) return { rows, totalHeight: 0 }
+    if (!photos.length) return { rows, footerY: 0, totalHeight: 0 }
 
     // Helper: push square-mode tile rows for a slice of photos
     const pushTileRows = (start: number, count: number): void => {
@@ -315,7 +315,9 @@ export default function Grid(): JSX.Element {
       }
     }
 
-    return { rows, totalHeight: y + PAD }
+    const contentHeight = y + PAD
+    const footerY = contentHeight + 16
+    return { rows, contentHeight, footerY, totalHeight: footerY + 60 }
   }, [photos, cols, tileSize, aspectMode, groupBy, innerW])
 
   // ---- Virtual-scroll: only render rows in viewport + overscan ---------------
@@ -325,6 +327,20 @@ export default function Grid(): JSX.Element {
     const bottom = scrollTop + viewportH + OVERSCAN
     return rows.filter((r) => r.y + r.height >= top && r.y <= bottom)
   }, [rows, scrollTop, viewportH])
+
+  const formattedCounts = useMemo(() => {
+    if (!photos.length) return ''
+    let p = 0
+    let v = 0
+    for (let i = 0; i < photos.length; i++) {
+      if (photos[i].type === 'video') v++
+      else p++
+    }
+    const parts: string[] = []
+    if (p > 0) parts.push(`${p.toLocaleString()} Photo${p === 1 ? '' : 's'}`)
+    if (v > 0) parts.push(`${v.toLocaleString()} Video${v === 1 ? '' : 's'}`)
+    return parts.length ? parts.join(', ') : '0 Items'
+  }, [photos])
 
   // ---- Viewport thumbnail reporting -----------------------------------------
   //
@@ -717,6 +733,12 @@ export default function Grid(): JSX.Element {
             )
           })
         })}
+
+        {formattedCounts && (
+          <div className="grid-footer" style={{ transform: `translateY(${footerY}px)` }}>
+            <span className="grid-footer-count">{formattedCounts}</span>
+          </div>
+        )}
 
         {band && (
           <div
