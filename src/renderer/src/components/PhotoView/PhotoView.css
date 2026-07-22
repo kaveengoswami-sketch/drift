@@ -209,3 +209,66 @@ video.viewer-media {
   box-shadow: -8px 0 24px rgba(0, 0, 0, 0.4);
 }
 
+/* Face overlay in viewer */
+.viewer-faces-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.viewer-face-box {
+  position: absolute;
+  border: 2px dashed rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(0, 0, 0, 0.3);
+  pointer-events: auto;
+  transition: border-color 0.15s ease, opacity 0.15s ease;
+  opacity: 0.75;
+}
+.viewer-face-box:hover {
+  opacity: 1;
+  border-color: var(--accent);
+  border-style: solid;
+}
+
+.viewer-face-badge {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  color: #fff;
+  font-size: 11px;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.viewer-face-name {
+  font-weight: 500;
+}
+
+.viewer-face-detach-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 10px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.viewer-face-detach-btn:hover {
+  background: #ff453a;
+}
+

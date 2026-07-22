@@ -96,11 +96,21 @@ function IconSettings(): JSX.Element {
   )
 }
 
+function IconPeople(): JSX.Element {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3">
+      <circle cx="8" cy="5.5" r="2.5" />
+      <path d="M2.5 13.5c0-2.5 2.5-4 5.5-4s5.5 1.5 5.5 4" />
+    </svg>
+  )
+}
+
 /* ------------------------------------------------------------------ */
 
 const LIBRARY_ITEMS: { key: LibraryQuery; label: string; Icon: () => JSX.Element; isLocked?: boolean }[] = [
   { key: { view: 'all' },           label: 'All Photos',      Icon: IconPhotos },
   { key: { view: 'favorites' },     label: 'Favorites',       Icon: IconHeart },
+  { key: { view: 'people' },        label: 'People',          Icon: IconPeople },
   { key: { view: 'recent-added' },  label: 'Recently Added',  Icon: IconClock },
   { key: { view: 'recent-viewed' }, label: 'Recently Viewed', Icon: IconEye },
   { key: { view: 'videos' },        label: 'Videos',          Icon: IconVideo },

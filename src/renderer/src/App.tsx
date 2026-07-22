@@ -12,6 +12,7 @@ import FirstRun from './components/FirstRun/FirstRun'
 import ContextMenu from './components/common/ContextMenu'
 import ConfirmDialog from './components/common/ConfirmDialog'
 import ScanBanner from './components/common/ScanBanner'
+import PeopleView from './components/People/PeopleView'
 import './App.css'
 
 export default function App(): JSX.Element {
@@ -20,6 +21,7 @@ export default function App(): JSX.Element {
   const initialized = useLibrary((s) => s.initialized)
   const viewerIndex = useLibrary((s) => s.viewerIndex)
   const photos = useLibrary((s) => s.photos)
+  const query = useLibrary((s) => s.query)
   const slideshow = useLibrary((s) => s.slideshow)
   const toggleFavorite = useLibrary((s) => s.toggleFavorite)
   const selectAll = useLibrary((s) => s.selectAll)
@@ -125,7 +127,13 @@ export default function App(): JSX.Element {
       <div className="app-body">
         {!needsFirstRun && <Sidebar />}
         <main className="app-main">
-          {needsFirstRun ? <FirstRun /> : <Grid />}
+          {needsFirstRun ? (
+            <FirstRun />
+          ) : query.view === 'people' ? (
+            <PeopleView />
+          ) : (
+            <Grid />
+          )}
         </main>
       </div>
       <ScanBanner />

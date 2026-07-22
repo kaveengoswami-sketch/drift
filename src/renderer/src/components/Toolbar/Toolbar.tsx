@@ -162,6 +162,8 @@ export default function Toolbar(): JSX.Element {
   }
 
   const viewTitle = useMemo(() => {
+    if (query.view === 'people') return 'People'
+    if (query.view === 'person') return query.personName || 'Person'
     if (query.view === 'favorites') return 'Favorites'
     if (query.view === 'recent-added') return 'Recently Added'
     if (query.view === 'recent-viewed') return 'Recently Viewed'
@@ -303,9 +305,21 @@ export default function Toolbar(): JSX.Element {
         <button className="icon-btn tb-btn" onClick={toggleSidebar} title="Toggle Sidebar (Ctrl+B)">
           <IconSidebarToggle />
         </button>
-        <button className="icon-btn tb-btn" onClick={handlePlusClick} title="New Album / Add Folder">
-          <IconPlus />
-        </button>
+        {query.view === 'person' ? (
+          <button
+            className="icon-btn tb-btn"
+            onClick={() => setQuery({ view: 'people' })}
+            title="Back to People"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+              <path d="M10 12L4 8l6-4" />
+            </svg>
+          </button>
+        ) : (
+          <button className="icon-btn tb-btn" onClick={handlePlusClick} title="New Album / Add Folder">
+            <IconPlus />
+          </button>
+        )}
         <div className="tb-title-block">
           <span className="tb-title">{viewTitle}</span>
           {selection.size > 0 ? (

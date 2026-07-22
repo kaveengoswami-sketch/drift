@@ -39,7 +39,7 @@ interface LibraryState {
 }
 
 export function queryKey(q: LibraryQuery): string {
-  return `${q.view}:${q.albumId ?? ''}:${q.folderId ?? ''}:${q.folderPathPrefix ?? ''}:${q.tag ?? ''}:${q.search ?? ''}`
+  return `${q.view}:${q.albumId ?? ''}:${q.folderId ?? ''}:${q.folderPathPrefix ?? ''}:${q.tag ?? ''}:${q.search ?? ''}:${q.personId ?? ''}`
 }
 
 let currentRefreshId = 0
@@ -67,7 +67,15 @@ export const useLibrary = create<LibraryState>((set, get) => ({
 
   refresh: async () => {
     const refreshId = ++currentRefreshId
-    const photos = await window.drift.queryPhotos(get().query)
+    const query = get().query
+    let photos: Photo[] = []
+    if (query.view === 'person' && query.personId) {
+      photos = await window.drift.photosForPerson(query.personId)
+    } else if (query.view === 'people') {
+      photos = []
+    } else {
+      photos = await window.drift.queryPhotos(query)
+    }
     if (refreshId !== currentRefreshId) return
     // `viewerIndex` and `lastSelectedIndex` are raw indices into `photos`, and a
     // background scan replaces this array underneath them — newly discovered

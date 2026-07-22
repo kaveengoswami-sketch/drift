@@ -57,6 +57,19 @@ export interface DriftApi {
   onScanProgress(cb: (p: ScanProgress) => void): () => void
   onLibraryChanged(cb: () => void): () => void
   onThumbDone(cb: (id: number) => void): () => void
+
+  // faces & people
+  listPeople(): Promise<import('@shared/types').Person[]>
+  getPerson(id: number): Promise<import('@shared/types').Person | undefined>
+  facesForPhoto(photoId: number): Promise<import('@shared/types').Face[]>
+  photosForPerson(personId: number): Promise<Photo[]>
+  namePerson(personId: number, name: string): Promise<void>
+  mergePeople(targetPersonId: number, sourcePersonId: number): Promise<void>
+  detachFace(faceId: number): Promise<void>
+  startFaceScan(): Promise<import('@shared/types').FaceScanProgress>
+  cancelFaceScan(): Promise<void>
+  getFaceScanProgress(): Promise<import('@shared/types').FaceScanProgress>
+  onFaceScanProgress(cb: (progress: import('@shared/types').FaceScanProgress) => void): () => void
 }
 
 declare global {

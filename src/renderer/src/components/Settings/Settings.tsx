@@ -5,6 +5,8 @@ import { useUI } from '@/stores/uiStore'
 import { useModalFocus } from '@/lib/useModalFocus'
 import './Settings.css'
 
+import type { FaceScanProgress } from '@shared/types'
+
 const ACCENTS = ['#6c8cff', '#a86cff', '#ff6c9d', '#ff9d6c', '#6cd9a8', '#4db8e8']
 const TRASH_OPTIONS = [7, 14, 30, 60, 90, 0]
 
@@ -19,10 +21,13 @@ export default function Settings(): JSX.Element {
   const { setSettingsOpen, askConfirm } = useUI()
   const [cacheSize, setCacheSize] = useState<number | null>(null)
   const [version, setVersion] = useState('')
+  const [faceProgress, setFaceProgress] = useState<FaceScanProgress | null>(null)
 
   useEffect(() => {
     window.drift.cacheSize().then(setCacheSize)
     window.drift.appVersion().then(setVersion)
+    window.drift.getFaceScanProgress().then(setFaceProgress)
+    return window.drift.onFaceScanProgress((p) => setFaceProgress(p as FaceScanProgress))
   }, [])
 
   const dlgRef = useModalFocus<HTMLDivElement>()
@@ -150,6 +155,41 @@ export default function Settings(): JSX.Element {
               >
                 Clear Cache
               </button>
+            </div>
+          </section>
+
+          <section>
+            <h3>Face Recognition</h3>
+            <div className="settings-row" style={{ alignItems: 'flex-start', flexDirection: 'column', gap: 6 }}>
+              <span className="settings-muted" style={{ fontSize: '12px', lineHeight: '1.4' }}>
+                On-device machine learning (SCRFD + MobileFaceNet). All face recognition runs 100% locally on your computer and never uploads data anywhere.
+              </span>
+            </div>
+            {faceProgress && faceProgress.phase !== 'idle' && faceProgress.phase !== 'done' && (
+              <div className="settings-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 4, margin: '8px 0' }}>
+                <div style={{ fontSize: '13px', fontWeight: 500 }}>
+                  {faceProgress.phase === 'downloading_models' && 'Downloading face models (~15MB)...'}
+                  {faceProgress.phase === 'scanning' && `Scanning photos: ${faceProgress.scanned} / ${faceProgress.total} (${faceProgress.facesFound} faces)`}
+                  {faceProgress.phase === 'clustering' && 'Grouping faces into people...'}
+                  {faceProgress.phase === 'error' && `Error: ${faceProgress.error}`}
+                </div>
+                {faceProgress.phase === 'scanning' && faceProgress.total > 0 && (
+                  <div style={{ width: '100%', height: 4, background: 'var(--bg-hover)', borderRadius: 999, overflow: 'hidden', marginTop: 4 }}>
+                    <div style={{ width: `${Math.min(100, (faceProgress.scanned / faceProgress.total) * 100)}%`, height: '100%', background: 'var(--accent)' }} />
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="settings-row-buttons">
+              {faceProgress && (faceProgress.phase === 'scanning' || faceProgress.phase === 'downloading_models' || faceProgress.phase === 'clustering') ? (
+                <button className="editor-btn" onClick={() => window.drift.cancelFaceScan()}>
+                  Cancel Scan
+                </button>
+              ) : (
+                <button className="editor-btn" onClick={() => window.drift.startFaceScan()}>
+                  Scan for People
+                </button>
+              )}
             </div>
           </section>
 

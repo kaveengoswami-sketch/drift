@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, useMotionValue, animate } from 'framer-motion'
 import { useLibrary } from '@/stores/libraryStore'
 import { useUI } from '@/stores/uiStore'
+import type { Face } from '@shared/types'
 import InfoPanel from '../InfoPanel/InfoPanel'
 import Editor from '../Editor/Editor'
 import './PhotoView.css'
@@ -28,6 +29,7 @@ export default function PhotoView(): JSX.Element {
   const [thumbErrorPhotoId, setThumbErrorPhotoId] = useState<number | null>(null)
   const [zoomed, setZoomed] = useState(false)
   const [thumbVersion, setThumbVersion] = useState(0)
+  const [faces, setFaces] = useState<Face[]>([])
 
   const fullLoaded = photo ? fullLoadedPhotoId === photo.id : false
   const thumbError = photo ? thumbErrorPhotoId === photo.id : false
@@ -84,6 +86,17 @@ export default function PhotoView(): JSX.Element {
         setThumbVersion((v) => v + 1)
       }
     })
+  }, [photo?.id])
+
+  useEffect(() => {
+    if (!photo) return
+    let active = true
+    window.drift.facesForPhoto(photo.id).then((res) => {
+      if (active) setFaces(res || [])
+    })
+    return () => {
+      active = false
+    }
   }, [photo?.id])
 
   const navigate = useCallback(
@@ -268,6 +281,47 @@ export default function PhotoView(): JSX.Element {
                       opacity: 1
                     }}
                   />
+                  {/* Face bounding box overlay */}
+                  {faces.length > 0 && (
+                    <div className="viewer-faces-layer">
+                      {faces.map((f) => (
+                        <div
+                          key={f.id}
+                          className="viewer-face-box"
+                          style={{
+                            left: `${f.bboxX * 100}%`,
+                            top: `${f.bboxY * 100}%`,
+                            width: `${f.bboxW * 100}%`,
+                            height: `${f.bboxH * 100}%`
+                          }}
+                        >
+                          <div className="viewer-face-badge">
+                            <span className="viewer-face-name">{f.personName || 'Unnamed Face'}</span>
+                            <button
+                              className="viewer-face-detach-btn"
+                              title="Detach face assignment"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                askConfirm({
+                                  title: 'Detach face?',
+                                  message: `Remove "${f.personName || 'this face'}" assignment from this person?`,
+                                  confirmLabel: 'Detach',
+                                  danger: true,
+                                  onConfirm: async () => {
+                                    await window.drift.detachFace(f.id)
+                                    const updated = await window.drift.facesForPhoto(photo.id)
+                                    setFaces(updated)
+                                  }
+                                })
+                              }}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </>
               )}
             </motion.div>
