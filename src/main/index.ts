@@ -14,6 +14,58 @@ protocol.registerSchemesAsPrivileged([
   { scheme: 'media', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true, bypassCSP: true } }
 ])
 
+/**
+ * Helper to parse a positive photo ID from a media:// URL.
+ * Standard custom schemes with purely numeric hosts (e.g. media://123/) are canonicalized by
+ * Chromium's URL parser into IPv4 dotted-quads (e.g. host "0.0.0.123").
+ *
+ * This function robustly extracts the photo ID from:
+ * 1. IPv4 dotted-quad host form (e.g. "0.0.0.123" -> (0<<24) | (0<<16) | (0<<8) | 123 = 123)
+ * 2. Alphanumeric suffixed host form (e.g. "123a" -> 123 via parseInt prefix matching)
+ * 3. Plain numeric host form (e.g. "123" -> 123)
+ * 4. Pathname segments (e.g. media:///123 or media://m/123 -> 123)
+ */
+function parsePhotoId(urlStr: string): number | null {
+  try {
+    const u = new URL(urlStr)
+    const hostId = extractIdFromString(u.host)
+    if (hostId !== null && hostId > 0) return hostId
+
+    const parts = u.pathname.split('/').filter(Boolean)
+    for (const part of parts) {
+      const pathId = extractIdFromString(part)
+      if (pathId !== null && pathId > 0) return pathId
+    }
+  } catch {
+    return null
+  }
+  return null
+}
+
+function extractIdFromString(str: string): number | null {
+  if (!str) return null
+  const ipMatch = str.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)
+  if (ipMatch) {
+    const a = parseInt(ipMatch[1], 10)
+    const b = parseInt(ipMatch[2], 10)
+    const c = parseInt(ipMatch[3], 10)
+    const d = parseInt(ipMatch[4], 10)
+    if (a <= 255 && b <= 255 && c <= 255 && d <= 255) {
+      const ipVal = ((a << 24) >>> 0) + (b << 16) + (c << 8) + d
+      if (Number.isFinite(ipVal) && ipVal > 0) {
+        return ipVal
+      }
+    }
+  }
+
+  const parsed = parseInt(str, 10)
+  if (Number.isFinite(parsed) && parsed > 0) {
+    return parsed
+  }
+
+  return null
+}
+
 let mainWindow: BrowserWindow | null = null
 
 function createWindow(): void {
@@ -110,9 +162,15 @@ app.whenReady().then(() => {
 
   protocol.handle('media', (req) => {
     try {
-      const u = new URL(req.url)
-      const id = parseInt(u.host, 10)
-      const photo = Number.isFinite(id) ? getPhoto(id) : undefined
+      // media:// scheme is registered as standard: true.
+      // Chromium URL parser canonicalizes pure-numeric hosts as IPv4 dotted-quad addresses
+      // (e.g. media://123/ becomes host "0.0.0.123", where parseInt("0.0.0.123") -> 0).
+      // Robustly recover the photo ID from:
+      // - IPv4 dotted-quad host (0.0.0.123 -> (0<<24)+(0<<16)+(0<<8)+123 = 123)
+      // - Suffix form like "123a" (parseInt prefix match)
+      // - Plain numeric or pathname segment (e.g. media:///123)
+      const id = parsePhotoId(req.url)
+      const photo = id && id > 0 ? getPhoto(id) : undefined
       if (!photo || !fs.existsSync(photo.path)) return new Response('not found', { status: 404 })
       return net
         .fetch(pathToFileURL(photo.path).toString(), {
