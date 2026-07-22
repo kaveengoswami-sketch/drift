@@ -337,7 +337,7 @@ export function ensureThumb(photoId: number, sizes: string[], win: BrowserWindow
     if (fs.existsSync(thumbPath(px, photo.hash))) continue
     // Remove any existing queued entry for this photo+px then push to front.
     viewportQueue = viewportQueue.filter((j) => !(j.id === photoId && j.px === px))
-    viewportQueue.unshift({ id: photoId, filePath: photo.path, hash: photo.hash, px, mode: 'shrink', generation })
+    viewportQueue.unshift({ id: photoId, filePath: photo.path, hash: photo.hash, px, mode: 'shrink', generation: Number.MAX_SAFE_INTEGER })
   }
   drainViewport(win)
 }

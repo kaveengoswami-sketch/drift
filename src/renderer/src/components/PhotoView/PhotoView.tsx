@@ -23,6 +23,7 @@ export default function PhotoView(): JSX.Element {
   const y = useMotionValue(0)
   const [fullLoaded, setFullLoaded] = useState(false)
   const [zoomed, setZoomed] = useState(false)
+  const [thumbVersion, setThumbVersion] = useState(0)
 
   const resetZoom = useCallback((): void => {
     animate(scale, 1, SPRING)
@@ -41,6 +42,22 @@ export default function PhotoView(): JSX.Element {
     setFullLoaded(false)
     window.drift.ensureThumb(photo.id, ['large'])
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [photo?.id])
+
+  useEffect(() => {
+    if (!photo) return
+    if (imgRef.current?.complete && imgRef.current?.naturalWidth) {
+      setFullLoaded(true)
+    }
+  }, [photo?.id])
+
+  useEffect(() => {
+    if (!photo) return
+    return window.drift.onThumbDone((doneId) => {
+      if (doneId === photo.id) {
+        setThumbVersion((v) => v + 1)
+      }
+    })
   }, [photo?.id])
 
   const navigate = useCallback(
@@ -187,25 +204,35 @@ export default function PhotoView(): JSX.Element {
               style={{ x, y, scale }}
             >
               {isVideo ? (
-                <video className="viewer-media" src={`media://${photo.id}/`} controls autoPlay />
+                <video className="viewer-media" src={`media://${photo.id}a/`} controls autoPlay />
               ) : (
                 <>
                   {/* progressive: large thumb underneath, original fades in on load */}
                   <img
                     className="viewer-media"
-                    src={`thumb://t/1024/${photo.hash}`}
+                    src={`thumb://t/1024/${photo.hash}${thumbVersion ? `?v=${thumbVersion}` : ''}`}
                     draggable={false}
                     alt=""
-                    style={{ opacity: fullLoaded ? 0 : 1, position: fullLoaded ? 'absolute' : 'relative', inset: 0 }}
+                    style={{
+                      opacity: fullLoaded ? 0 : 1,
+                      position: fullLoaded ? 'absolute' : 'relative',
+                      inset: 0,
+                      zIndex: fullLoaded ? 1 : 2
+                    }}
                   />
                   <img
                     ref={imgRef}
                     className="viewer-media"
-                    src={`media://${photo.id}/`}
+                    src={`media://${photo.id}a/`}
                     draggable={false}
                     alt=""
                     onLoad={() => setFullLoaded(true)}
-                    style={{ opacity: fullLoaded ? 1 : 0, position: fullLoaded ? 'relative' : 'absolute', inset: 0 }}
+                    style={{
+                      opacity: fullLoaded ? 1 : 0,
+                      position: fullLoaded ? 'relative' : 'absolute',
+                      inset: 0,
+                      zIndex: fullLoaded ? 2 : 1
+                    }}
                   />
                 </>
               )}

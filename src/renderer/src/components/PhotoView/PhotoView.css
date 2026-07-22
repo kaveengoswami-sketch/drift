@@ -164,3 +164,14 @@ video.viewer-media {
   border-color: var(--accent);
   transform: scale(1.08);
 }
+
+.viewer-layout .info-panel {
+  position: relative;
+  z-index: 10;
+  background: rgba(18, 18, 24, 0.88);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.4);
+}
+
