@@ -136,7 +136,7 @@ export const useLibrary = create<LibraryState>((set, get) => ({
   },
 
   toggleFavorite: async (ids) => {
-    const { selection, photos, viewerIndex } = get()
+    const { selection, photos, viewerIndex, query } = get()
     let targets = ids
     if (!targets) {
       if (viewerIndex !== null && photos[viewerIndex]) targets = [photos[viewerIndex].id]
@@ -145,11 +145,15 @@ export const useLibrary = create<LibraryState>((set, get) => ({
     if (!targets.length) return
     const first = photos.find((p) => p.id === targets![0])
     const fav = first ? !first.favorite : true
+    const favVal = (fav ? 1 : 0) as 0 | 1
     // optimistic update
     set({
-      photos: photos.map((p) => (targets!.includes(p.id) ? { ...p, favorite: (fav ? 1 : 0) as 0 | 1 } : p))
+      photos: photos.map((p) => (targets!.includes(p.id) ? { ...p, favorite: favVal } : p))
     })
     await window.drift.setFavorite(targets, fav)
+    if (query.view === 'favorites') {
+      await get().refresh()
+    }
   },
 
   saveScroll: (key, top) => {

@@ -166,7 +166,9 @@ let pendingRafId: number | null = null
 export default function Grid(): JSX.Element {
   const {
     photos,
+    folders,
     query,
+    setQuery,
     selection,
     select,
     clearSelection,
@@ -401,6 +403,11 @@ export default function Grid(): JSX.Element {
     },
     [photos]
   )
+
+  // Reset viewport signature on query or photos change so reportViewport always triggers
+  useEffect(() => {
+    lastViewportSig = ''
+  }, [photos, query])
 
   // Fire viewport report whenever visible rows, scroll position, or bucket changes
   useEffect(() => {
@@ -637,13 +644,77 @@ export default function Grid(): JSX.Element {
   // scroll container.
 
   if (!photos.length) {
+    const hasSearch = !!query.search?.trim()
+    const hasTag = !!query.tag
+
+    if (hasSearch || hasTag) {
+      const term = query.search?.trim() || query.tag || ''
+      return (
+        <div className="grid-empty">
+          <div className="grid-empty-icon">&#x1F50D;</div>
+          <div className="grid-empty-title">No results for &ldquo;{term}&rdquo;</div>
+          <div className="grid-empty-sub">Check your spelling or try searching for something else.</div>
+          <button
+            className="grid-empty-clear"
+            onClick={() => setQuery({ ...query, search: undefined, tag: undefined })}
+            style={{
+              marginTop: 12,
+              padding: '6px 16px',
+              borderRadius: 6,
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              color: '#fff',
+              cursor: 'pointer',
+              fontSize: 13
+            }}
+          >
+            Clear search
+          </button>
+        </div>
+      )
+    }
+
+    if (!folders.length) {
+      return (
+        <div className="grid-empty">
+          <div className="grid-empty-icon">&#x1F304;</div>
+          <div className="grid-empty-title">No source folders</div>
+          <div className="grid-empty-sub">Add a source folder from the sidebar to start browsing.</div>
+        </div>
+      )
+    }
+
+    let title = 'No photos here'
+    let sub = 'Photos will appear here once scanned.'
+
+    if (query.view === 'favorites') {
+      title = 'No favorites yet'
+      sub = 'Photos you favorite will appear here.'
+    } else if (query.view === 'trash') {
+      title = 'Nothing deleted recently'
+      sub = 'Deleted photos will appear here.'
+    } else if (query.view === 'recent-added') {
+      title = 'No recently added photos'
+      sub = 'Photos added recently will appear here.'
+    } else if (query.view === 'recent-viewed') {
+      title = 'No recently viewed photos'
+      sub = 'Photos you open will appear here.'
+    } else if (query.view === 'videos') {
+      title = 'No videos found'
+      sub = 'Videos in your library will appear here.'
+    } else if (query.view === 'album') {
+      title = 'Album is empty'
+      sub = 'Add photos to this album using the context menu or drag & drop.'
+    } else if (query.view === 'folder') {
+      title = 'Folder is empty'
+      sub = 'No supported photos or videos were found in this folder.'
+    }
+
     return (
       <div className="grid-empty">
         <div className="grid-empty-icon">&#x1F304;</div>
-        <div className="grid-empty-title">{query.view === 'trash' ? 'Nothing deleted recently' : 'No photos here'}</div>
-        <div className="grid-empty-sub">
-          {query.view === 'all' ? 'Add a source folder from the sidebar to start browsing.' : 'Photos will appear here.'}
-        </div>
+        <div className="grid-empty-title">{title}</div>
+        <div className="grid-empty-sub">{sub}</div>
       </div>
     )
   }
@@ -687,6 +758,7 @@ export default function Grid(): JSX.Element {
             return Array.from({ length: row.count }, (_, c) => {
               const idx = row.start + c
               const photo = photos[idx]
+              if (!photo) return null
               return (
                 <PhotoTile
                   key={photo.id}
@@ -712,6 +784,7 @@ export default function Grid(): JSX.Element {
           return Array.from({ length: aspectRow.count }, (_, c) => {
             const idx = aspectRow.start + c
             const photo = photos[idx]
+            if (!photo) return null
             const w = aspectRow.widths[c]
             const tileX = x
             x += w + GAP

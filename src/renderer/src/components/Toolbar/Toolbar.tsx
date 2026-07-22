@@ -244,10 +244,27 @@ export default function Toolbar(): JSX.Element {
     ])
   }
 
+  const isHeartActive = useMemo(() => {
+    if (viewerIndex !== null && photos[viewerIndex]) {
+      return !!photos[viewerIndex].favorite
+    }
+    if (selection.size > 0) {
+      return Array.from(selection).some((id) => photos.find((p) => p.id === id)?.favorite)
+    }
+    return query.view === 'favorites'
+  }, [viewerIndex, photos, selection, query.view])
+
   const handleHeartClick = (): void => {
+    if (viewerIndex !== null && photos[viewerIndex]) {
+      toggleFavorite([photos[viewerIndex].id])
+      return
+    }
     const ids = Array.from(selection)
-    if (ids.length > 0) toggleFavorite(ids)
-    else setQuery({ view: 'favorites' })
+    if (ids.length > 0) {
+      toggleFavorite(ids)
+      return
+    }
+    setQuery({ view: 'favorites' })
   }
 
   const handleShareClick = (e: React.MouseEvent): void => {
@@ -336,7 +353,7 @@ export default function Toolbar(): JSX.Element {
         <button className="icon-btn tb-btn" onClick={handleMoreClick} title="More actions">
           <IconMore />
         </button>
-        <button className="icon-btn tb-btn" onClick={handleHeartClick} title="Favorite selected (F)">
+        <button className={`icon-btn tb-btn${isHeartActive ? ' active' : ''}`} onClick={handleHeartClick} title="Favorite (F) / View Favorites">
           <IconHeart />
         </button>
         <button className="icon-btn tb-btn" onClick={handleShareClick} title="Share photo">

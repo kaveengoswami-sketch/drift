@@ -36,7 +36,7 @@ export default function Editor({ photo, onClose }: { photo: Photo; onClose: () =
   const [loaded, setLoaded] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  // load original
+  // load original photo for editor preview
   useEffect(() => {
     let cancelled = false
     const img = new Image()
@@ -45,11 +45,22 @@ export default function Editor({ photo, onClose }: { photo: Photo; onClose: () =
       imgRef.current = img
       setLoaded(true)
     }
-    img.src = `media://${photo.id}/`
+    img.onerror = () => {
+      if (cancelled) return
+      const fallbackImg = new Image()
+      fallbackImg.onload = () => {
+        if (cancelled) return
+        imgRef.current = fallbackImg
+        setLoaded(true)
+      }
+      fallbackImg.src = `thumb://t/2048/${photo.hash}`
+    }
+    // Appending 'a' prevents Chromium standard-scheme IPv4 host canonicalization for numeric hosts
+    img.src = `media://${photo.id}a/`
     return () => {
       cancelled = true
     }
-  }, [photo.id])
+  }, [photo.id, photo.hash])
 
   // draw preview
   const drawPreview = useCallback(() => {
