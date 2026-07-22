@@ -55,13 +55,6 @@ function IconMore(): JSX.Element {
   )
 }
 
-function IconHeart(): JSX.Element {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3">
-      <path d="M8 13.5C8 13.5 1.5 9.5 1.5 5.5a3 3 0 0 1 6-0.5 3 3 0 0 1 6 0.5c0 4-6.5 8-6.5 8Z" />
-    </svg>
-  )
-}
 
 function IconShare(): JSX.Element {
   return (
@@ -131,7 +124,6 @@ export default function Toolbar(): JSX.Element {
   const setQuery = useLibrary((s) => s.setQuery)
   const selection = useLibrary((s) => s.selection)
   const viewerIndex = useLibrary((s) => s.viewerIndex)
-  const toggleFavorite = useLibrary((s) => s.toggleFavorite)
   const setSlideshow = useLibrary((s) => s.setSlideshow)
   const selectAll = useLibrary((s) => s.selectAll)
   const refreshSidebar = useLibrary((s) => s.refreshSidebar)
@@ -164,13 +156,6 @@ export default function Toolbar(): JSX.Element {
     }
   }, [])
 
-  const handleSearchChange = (val: string): void => {
-    setSearch(val)
-    if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
-    searchTimerRef.current = setTimeout(() => {
-      setQuery({ ...useLibrary.getState().query, search: val || undefined })
-    }, 150)
-  }
 
   const toggleAspect = (): void => {
     setAspectMode(aspectMode === 'square' ? 'aspect' : 'square')
@@ -244,37 +229,28 @@ export default function Toolbar(): JSX.Element {
     ])
   }
 
-  const isHeartActive = useMemo(() => {
-    if (viewerIndex !== null && photos[viewerIndex]) {
-      return !!photos[viewerIndex].favorite
-    }
-    if (selection.size > 0) {
-      return Array.from(selection).some((id) => photos.find((p) => p.id === id)?.favorite)
-    }
-    return query.view === 'favorites'
-  }, [viewerIndex, photos, selection, query.view])
-
-  const handleHeartClick = (): void => {
-    if (viewerIndex !== null && photos[viewerIndex]) {
-      toggleFavorite([photos[viewerIndex].id])
-      return
-    }
-    const ids = Array.from(selection)
-    if (ids.length > 0) {
-      toggleFavorite(ids)
-      return
-    }
-    setQuery({ view: 'favorites' })
-  }
-
   const handleShareClick = (e: React.MouseEvent): void => {
+    const selectedPhotos = photos.filter((p) => selection.has(p.id))
     const currentPhoto =
-      viewerIndex !== null && photos[viewerIndex]
-        ? photos[viewerIndex]
-        : (photos.find((p) => selection.has(p.id)) ?? null)
+      selectedPhotos.length > 0
+        ? selectedPhotos[0]
+        : viewerIndex !== null && photos[viewerIndex]
+          ? photos[viewerIndex]
+          : null
 
     const items: ContextMenuItem[] = []
-    if (currentPhoto) {
+    if (selectedPhotos.length > 1) {
+      items.push(
+        {
+          label: `Copy ${selectedPhotos.length} File Paths`,
+          action: () => navigator.clipboard.writeText(selectedPhotos.map((p) => p.path).join('\n'))
+        },
+        {
+          label: 'Reveal First in File Explorer',
+          action: () => window.drift.showInExplorer(selectedPhotos[0].path)
+        }
+      )
+    } else if (currentPhoto) {
       items.push(
         {
           label: 'Copy Image to Clipboard',
@@ -289,14 +265,35 @@ export default function Toolbar(): JSX.Element {
           action: () => window.drift.showInExplorer(currentPhoto.path)
         }
       )
-    } else {
+    } else if (query.view === 'album' && query.albumId) {
+      const alb = albums.find((a) => a.id === query.albumId)
       items.push({
-        label: 'Select a photo to share',
+        label: `Album: ${alb ? alb.name : 'Album'} (${photos.length} items)`,
         action: () => {}
       })
     }
 
     openContextMenu(e.clientX, e.clientY, items)
+  }
+
+  const handleSearchChange = (val: string): void => {
+    setSearch(val)
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+    searchTimerRef.current = setTimeout(() => {
+      setQuery({ ...useLibrary.getState().query, search: val.trim() || undefined })
+    }, 150)
+  }
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>): void => {
+    if (e.key === 'Enter') {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+      setQuery({ ...useLibrary.getState().query, search: search.trim() || undefined })
+    } else if (e.key === 'Escape') {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+      setSearch('')
+      setQuery({ ...useLibrary.getState().query, search: undefined })
+      searchRef.current?.blur()
+    }
   }
 
   return (
@@ -311,7 +308,11 @@ export default function Toolbar(): JSX.Element {
         </button>
         <div className="tb-title-block">
           <span className="tb-title">{viewTitle}</span>
-          {dateSubtitle && <span className="tb-subtitle">{dateSubtitle}</span>}
+          {selection.size > 0 ? (
+            <span className="tb-subtitle">{selection.size} selected</span>
+          ) : (
+            dateSubtitle && <span className="tb-subtitle">{dateSubtitle}</span>
+          )}
         </div>
       </div>
 
@@ -330,7 +331,7 @@ export default function Toolbar(): JSX.Element {
         </div>
       </div>
 
-      {/* RIGHT: stack/grid icon, zoom slider, more, heart, share, search, caption buttons */}
+      {/* RIGHT: stack/grid icon, zoom slider, more, share (if album or selection), search, caption buttons */}
       <div className="toolbar-right">
         <button
           className={`icon-btn tb-btn${aspectMode === 'aspect' ? ' active' : ''}`}
@@ -353,12 +354,11 @@ export default function Toolbar(): JSX.Element {
         <button className="icon-btn tb-btn" onClick={handleMoreClick} title="More actions">
           <IconMore />
         </button>
-        <button className={`icon-btn tb-btn${isHeartActive ? ' active' : ''}`} onClick={handleHeartClick} title="Favorite (F) / View Favorites">
-          <IconHeart />
-        </button>
-        <button className="icon-btn tb-btn" onClick={handleShareClick} title="Share photo">
-          <IconShare />
-        </button>
+        {(query.view === 'album' || selection.size > 0) && (
+          <button className="icon-btn tb-btn" onClick={handleShareClick} title="Share">
+            <IconShare />
+          </button>
+        )}
 
         <div className="tb-search">
           <span className="tb-search-icon">
@@ -371,6 +371,7 @@ export default function Toolbar(): JSX.Element {
             className="tb-search-input"
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
           />
         </div>
 

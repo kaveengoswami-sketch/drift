@@ -99,6 +99,8 @@ export const useLibrary = create<LibraryState>((set, get) => ({
   select: (id, index, mode) => {
     const { selection, lastSelectedIndex, photos } = get()
     const next = new Set(selection)
+    let newAnchor = index
+
     if (mode === 'single') {
       next.clear()
       next.add(id)
@@ -106,13 +108,16 @@ export const useLibrary = create<LibraryState>((set, get) => ({
       if (next.has(id)) next.delete(id)
       else next.add(id)
     } else if (mode === 'range' && lastSelectedIndex !== null) {
-      const [a, b] = [Math.min(lastSelectedIndex, index), Math.max(lastSelectedIndex, index)]
-      // guard the deref: a range anchor can outlive the row it pointed at
+      next.clear()
+      const anchor = lastSelectedIndex
+      const [a, b] = [Math.min(anchor, index), Math.max(anchor, index)]
       for (let i = a; i <= b; i++) if (photos[i]) next.add(photos[i].id)
+      newAnchor = anchor
     } else {
+      next.clear()
       next.add(id)
     }
-    set({ selection: next, lastSelectedIndex: index })
+    set({ selection: next, lastSelectedIndex: newAnchor })
   },
 
   clearSelection: () => set({ selection: new Set(), lastSelectedIndex: null }),

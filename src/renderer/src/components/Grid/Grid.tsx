@@ -442,6 +442,40 @@ export default function Grid(): JSX.Element {
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent): void => {
       if (!photos.length) return
+
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        clearSelection()
+        return
+      }
+
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'a' || e.key === 'A')) {
+        e.preventDefault()
+        useLibrary.getState().selectAll()
+        return
+      }
+
+      const sel = useLibrary.getState().selection
+      if ((e.key === 'Delete' || e.key === 'Backspace') && sel.size > 0) {
+        e.preventDefault()
+        const ids = [...sel]
+        const many = ids.length > 1
+        askConfirm({
+          title: 'Move to Recently Deleted?',
+          message: `${ids.length} item${many ? 's' : ''} will be moved to Recently Deleted and auto-removed later.`,
+          confirmLabel: 'Delete',
+          danger: true,
+          onConfirm: () => window.drift.trashPhotos(ids)
+        })
+        return
+      }
+
+      if ((e.key === 'f' || e.key === 'F') && sel.size > 0) {
+        e.preventDefault()
+        toggleFavorite([...sel])
+        return
+      }
+
       const cur = useLibrary.getState().lastSelectedIndex ?? 0
       const rowAt = (i: number): number =>
         tileRows.findIndex((r) => i >= r.start && i < r.start + r.count)
@@ -467,7 +501,8 @@ export default function Grid(): JSX.Element {
       } else return
 
       e.preventDefault()
-      select(photos[next].id, next, 'single')
+      const mode = e.shiftKey ? 'range' : 'single'
+      select(photos[next].id, next, mode)
 
       // Keep the cursor on screen
       const ri = rowAt(next)
@@ -479,7 +514,7 @@ export default function Grid(): JSX.Element {
           el.scrollTop = r.y + r.height - el.clientHeight + PAD
       }
     },
-    [photos, tileRows, select, openPhoto]
+    [photos, tileRows, select, openPhoto, clearSelection, askConfirm, toggleFavorite]
   )
 
   // ---- Context menu ---------------------------------------------------------
@@ -635,6 +670,13 @@ export default function Grid(): JSX.Element {
     bandStart.current = null
     setBand(null)
   }
+
+  useEffect(() => {
+    if (!band) return
+    const handleUp = (): void => endBand()
+    window.addEventListener('mouseup', handleUp)
+    return () => window.removeEventListener('mouseup', handleUp)
+  }, [band])
 
   // ---- Empty state ----------------------------------------------------------
   //

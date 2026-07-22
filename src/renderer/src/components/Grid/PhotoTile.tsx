@@ -127,7 +127,6 @@ function PhotoTileInner({
   // by a timer or a global sweep.
   useEffect(() => {
     return onThumbReady(photo.id, () => {
-      if (!failedRef.current) return
       setFailed(false)
       setVersion((v) => v + 1)
     })
@@ -140,14 +139,19 @@ function PhotoTileInner({
   // ("384") becomes an IPv4 address ("0.0.1.128") — which matches no bucket
   // and renders every tile as a broken image.
   // A cache-busting ?v= suffix is appended when the tile was previously in
-  // failed state and the main process has just reported the thumb is ready.
+  // failed state or when the main process reports that an exact-bucket thumbnail is ready.
   const thumbSrc = `thumb://t/${bucket}/${photo.hash}${version ? `?v=${version}` : ''}`
 
-  const click = (e: React.MouseEvent): void => {
+  const handleClick = (e: React.MouseEvent): void => {
     e.stopPropagation()
     if (e.shiftKey) onSelect(photo.id, index, 'range')
-    else if (e.ctrlKey) onSelect(photo.id, index, 'toggle')
-    else onOpen(index)
+    else if (e.ctrlKey || e.metaKey) onSelect(photo.id, index, 'toggle')
+    else onSelect(photo.id, index, 'single')
+  }
+
+  const handleDoubleClick = (e: React.MouseEvent): void => {
+    e.stopPropagation()
+    onOpen(index)
   }
 
   return (
@@ -160,7 +164,8 @@ function PhotoTileInner({
       aria-label={photo.filename}
       className={`tile${selected ? ' selected' : ''}`}
       style={{ width, height, transform: `translate(${x}px, ${y}px)` }}
-      onClick={click}
+      onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
       onContextMenu={(e) => onContextMenu(e, photo, index)}
       draggable
       onDragStart={(e) => {
