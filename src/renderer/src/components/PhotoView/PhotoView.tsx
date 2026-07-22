@@ -25,10 +25,12 @@ export default function PhotoView(): JSX.Element {
   const x = useMotionValue(0)
   const y = useMotionValue(0)
   const [fullLoadedPhotoId, setFullLoadedPhotoId] = useState<number | null>(null)
+  const [thumbErrorPhotoId, setThumbErrorPhotoId] = useState<number | null>(null)
   const [zoomed, setZoomed] = useState(false)
   const [thumbVersion, setThumbVersion] = useState(0)
 
   const fullLoaded = photo ? fullLoadedPhotoId === photo.id : false
+  const thumbError = photo ? thumbErrorPhotoId === photo.id : false
 
   const resetZoom = useCallback((): void => {
     animate(scale, 1, SPRING)
@@ -50,10 +52,28 @@ export default function PhotoView(): JSX.Element {
 
   useEffect(() => {
     if (!photo) return
-    if (imgRef.current?.complete && imgRef.current?.naturalWidth) {
-      if (currentPhotoIdRef.current === photo.id) {
-        setFullLoadedPhotoId(photo.id)
+    let active = true
+    const img = imgRef.current
+    if (img) {
+      if (img.complete && img.naturalWidth) {
+        if (currentPhotoIdRef.current === photo.id) {
+          setFullLoadedPhotoId(photo.id)
+        }
+      } else if (typeof img.decode === 'function') {
+        img
+          .decode()
+          .then(() => {
+            if (active && currentPhotoIdRef.current === photo.id) {
+              setFullLoadedPhotoId(photo.id)
+            }
+          })
+          .catch(() => {
+            // decode aborted or failed
+          })
       }
+    }
+    return () => {
+      active = false
     }
   }, [photo?.id])
 
@@ -213,24 +233,28 @@ export default function PhotoView(): JSX.Element {
                 <video key={`video-${photo.id}`} className="viewer-media" src={`media://${photo.id}a/`} controls autoPlay />
               ) : (
                 <>
-                  {/* progressive: large thumb underneath, original fades in on load */}
+                  {/* progressive: large thumb on top layer (z-index 2), fades out on load or error */}
                   <img
                     key={`thumb-${photo.id}`}
-                    className="viewer-media"
+                    className="viewer-media viewer-media-thumb"
                     src={`thumb://t/1024/${photo.hash}${thumbVersion ? `?v=${thumbVersion}` : ''}`}
                     draggable={false}
                     alt=""
+                    onError={() => {
+                      if (currentPhotoIdRef.current === photo.id) {
+                        setThumbErrorPhotoId(photo.id)
+                      }
+                    }}
                     style={{
-                      opacity: fullLoaded ? 0 : 1,
-                      position: fullLoaded ? 'absolute' : 'relative',
-                      inset: 0,
-                      zIndex: fullLoaded ? 1 : 2
+                      opacity: fullLoaded || thumbError ? 0 : 1,
+                      pointerEvents: 'none'
                     }}
                   />
+                  {/* full-res image on bottom layer (z-index 1), always opacity 1 */}
                   <img
                     key={`media-${photo.id}`}
                     ref={imgRef}
-                    className="viewer-media"
+                    className="viewer-media viewer-media-full"
                     src={`media://${photo.id}a/`}
                     draggable={false}
                     alt=""
@@ -240,10 +264,7 @@ export default function PhotoView(): JSX.Element {
                       }
                     }}
                     style={{
-                      opacity: fullLoaded ? 1 : 0,
-                      position: fullLoaded ? 'relative' : 'absolute',
-                      inset: 0,
-                      zIndex: fullLoaded ? 2 : 1
+                      opacity: 1
                     }}
                   />
                 </>
