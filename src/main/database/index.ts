@@ -156,6 +156,12 @@ function migrate(d: DatabaseSync): void {
 
   // 2. Column additions
   safeAddColumn(d, 'photos', 'relPath', 'TEXT')
+  // Best cosine similarity of this (still-unnamed) person's centroid against
+  // any named person's model, recomputed each clustering pass. NULL for
+  // named people — the field exists to decide whether an unnamed cluster is
+  // worth surfacing despite a low face count, and a named person doesn't
+  // need that decision made for it.
+  safeAddColumn(d, 'people', 'maxSimilarityToNamed', 'REAL')
 
   // 3. Indexes (created after base tables and column migrations)
   const indexes = [
@@ -562,7 +568,7 @@ export function listPeople(): Person[] {
   const d = getDb()
   const rows = d.prepare(`
     SELECT
-      p.id, p.name, p.type, p.coverFaceId, p.isHidden, p.createdAt,
+      p.id, p.name, p.type, p.coverFaceId, p.isHidden, p.createdAt, p.maxSimilarityToNamed,
       COUNT(f.id) as faceCount,
       ph.path as coverPhotoPath,
       cf.bboxX as coverBboxX, cf.bboxY as coverBboxY, cf.bboxW as coverBboxW, cf.bboxH as coverBboxH
@@ -580,6 +586,7 @@ export function listPeople(): Person[] {
     coverFaceId: number | null
     isHidden: number
     createdAt: number
+    maxSimilarityToNamed: number | null
     faceCount: number
     coverPhotoPath?: string | null
     coverBboxX?: number | null
@@ -595,6 +602,7 @@ export function listPeople(): Person[] {
     coverFaceId: r.coverFaceId,
     isHidden: r.isHidden,
     createdAt: r.createdAt,
+    maxSimilarityToNamed: r.maxSimilarityToNamed,
     faceCount: r.faceCount,
     coverPhotoPath: r.coverPhotoPath || null,
     coverBbox: r.coverBboxX != null ? { x: r.coverBboxX, y: r.coverBboxY!, w: r.coverBboxW!, h: r.coverBboxH! } : null
@@ -605,7 +613,7 @@ export function getPerson(id: number): Person | undefined {
   const d = getDb()
   const r = d.prepare(`
     SELECT
-      p.id, p.name, p.type, p.coverFaceId, p.isHidden, p.createdAt,
+      p.id, p.name, p.type, p.coverFaceId, p.isHidden, p.createdAt, p.maxSimilarityToNamed,
       (SELECT COUNT(*) FROM faces WHERE personId = p.id) as faceCount,
       ph.path as coverPhotoPath,
       cf.bboxX as coverBboxX, cf.bboxY as coverBboxY, cf.bboxW as coverBboxW, cf.bboxH as coverBboxH
@@ -620,6 +628,7 @@ export function getPerson(id: number): Person | undefined {
     coverFaceId: number | null
     isHidden: number
     createdAt: number
+    maxSimilarityToNamed: number | null
     faceCount: number
     coverPhotoPath?: string | null
     coverBboxX?: number | null
@@ -636,6 +645,7 @@ export function getPerson(id: number): Person | undefined {
     coverFaceId: r.coverFaceId,
     isHidden: r.isHidden,
     createdAt: r.createdAt,
+    maxSimilarityToNamed: r.maxSimilarityToNamed,
     faceCount: r.faceCount,
     coverPhotoPath: r.coverPhotoPath || null,
     coverBbox: r.coverBboxX != null ? { x: r.coverBboxX, y: r.coverBboxY!, w: r.coverBboxW!, h: r.coverBboxH! } : null
@@ -853,5 +863,9 @@ export function assignFaceToPerson(faceId: number, personId: number | null): voi
 
 export function updatePersonCoverFace(personId: number, coverFaceId: number | null): void {
   getDb().prepare('UPDATE people SET coverFaceId = ? WHERE id = ?').run(coverFaceId, personId)
+}
+
+export function updatePersonSimilarityToNamed(personId: number, similarity: number | null): void {
+  getDb().prepare('UPDATE people SET maxSimilarityToNamed = ? WHERE id = ?').run(similarity, personId)
 }
 

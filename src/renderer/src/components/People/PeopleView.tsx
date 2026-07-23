@@ -16,7 +16,7 @@ export default function PeopleView(): JSX.Element {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [scanProgress, setScanProgress] = useState<FaceScanProgress | null>(null)
   const [renderLimit, setRenderLimit] = useState(60)
-  const [showOneOffs, setShowOneOffs] = useState(false)
+  const [showHidden, setShowHidden] = useState(false)
 
   const fetchPeople = useCallback(async () => {
     try {
@@ -68,22 +68,40 @@ export default function PeopleView(): JSX.Element {
     return { namedPeople: named, unnamedPeople: unnamed }
   }, [people])
 
+  // An unnamed cluster below this size is more often a false positive —
+  // foliage, an ear, a stranger in the background of one shot — than a
+  // person worth a name. Below the bar they go behind a disclosure instead
+  // of burying the handful of clusters that are actually worth naming.
+  const MIN_VISIBLE_FACE_COUNT = 40
+
+  // The clustering pass already folds anything scoring at or above its own
+  // NAMED_CLUSTER_SIM bar (0.5) into the named person outright, so a small
+  // cluster surviving as its own Person is by definition below that bar.
+  // But the two populations aren't cleanly separated right up to 0.5 —
+  // same-person pairs verified by eye have scored as low as 0.54, unrelated
+  // ones as high as 0.38 — so a cluster landing in that gap is still a
+  // plausible match, just not a confident enough one to auto-merge. Worth a
+  // glance even at a low count, rather than hidden with the noise.
+  const SUGGESTION_SIMILARITY_FLOOR = 0.42
+
   // A cluster holding a single face is overwhelmingly a false positive —
-  // foliage, an ear, motion blur. Inline they bury the handful of clusters
-  // that are actually worth naming, so they go behind a disclosure.
-  const { suggested, oneOffs } = useMemo(() => {
+  // foliage, an ear, motion blur — and folds into the same disclosure as
+  // every other unnamed person below the visibility bar.
+  const { suggested, hidden } = useMemo(() => {
     const suggested: Person[] = []
-    const oneOffs: Person[] = []
+    const hidden: Person[] = []
     for (const p of unnamedPeople) {
-      if (p.faceCount > 1) suggested.push(p)
-      else oneOffs.push(p)
+      const looksLikeSomeoneNamed =
+        p.maxSimilarityToNamed !== null && p.maxSimilarityToNamed >= SUGGESTION_SIMILARITY_FLOOR
+      if (p.faceCount > MIN_VISIBLE_FACE_COUNT || looksLikeSomeoneNamed) suggested.push(p)
+      else hidden.push(p)
     }
-    return { suggested, oneOffs }
+    return { suggested, hidden }
   }, [unnamedPeople])
 
   const allSortedPeople = useMemo(() => {
-    return [...namedPeople, ...suggested, ...oneOffs]
-  }, [namedPeople, suggested, oneOffs])
+    return [...namedPeople, ...suggested, ...hidden]
+  }, [namedPeople, suggested, hidden])
 
   // Infinite/progressive loading slice for smooth rendering
   useEffect(() => {
@@ -354,21 +372,21 @@ export default function PeopleView(): JSX.Element {
             </div>
           )}
 
-          {oneOffs.length > 0 && (
+          {hidden.length > 0 && (
             <div className="people-section">
               <button
                 className="people-oneoffs-toggle"
-                aria-expanded={showOneOffs}
-                onClick={() => setShowOneOffs((v) => !v)}
+                aria-expanded={showHidden}
+                onClick={() => setShowHidden((v) => !v)}
               >
                 <svg width="9" height="9" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
                   <path d="M3 1l5 4-5 4z" />
                 </svg>
-                {oneOffs.length} faces seen only once
+                {hidden.length} more {hidden.length === 1 ? 'person' : 'people'} ({MIN_VISIBLE_FACE_COUNT} photos or fewer)
               </button>
-              {showOneOffs && (
+              {showHidden && (
                 <div className="people-grid">
-                  {oneOffs.filter((p) => visibleIds.has(p.id)).map(renderCard)}
+                  {hidden.filter((p) => visibleIds.has(p.id)).map(renderCard)}
                 </div>
               )}
             </div>

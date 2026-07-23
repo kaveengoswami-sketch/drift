@@ -311,6 +311,40 @@ export function runClustering(): { clustersCreated: number; facesAssigned: numbe
     }
   }
 
+  // 5. Score every still-unnamed person against the named models.
+  //
+  // The People view only surfaces an unnamed cluster by default past a face
+  // count, but a small cluster that clearly favours a named person is worth
+  // showing anyway — most likely it's a pose or lighting gap that kept it
+  // from folding in above. Anything scoring >= NAMED_CLUSTER_SIM already got
+  // absorbed in step 1-2, so what's left here is by definition below that
+  // bar; this just records how close it came.
+  const finalModels = buildNamedModels(faceItems.filter((it) => it.personId !== null && it.personName))
+  const unnamedByPerson = new Map<number, Float32Array[]>()
+  for (const item of faceItems) {
+    if (item.personId === null || item.personName) continue
+    let embs = unnamedByPerson.get(item.personId)
+    if (!embs) unnamedByPerson.set(item.personId, (embs = []))
+    embs.push(item.embedding)
+  }
+  for (const [personId, embs] of unnamedByPerson) {
+    if (!finalModels.length) {
+      db.updatePersonSimilarityToNamed(personId, null)
+      continue
+    }
+    const centroid = new Float32Array(512)
+    for (const e of embs) {
+      for (let i = 0; i < 512; i++) centroid[i] += e[i]
+    }
+    l2Normalize(centroid)
+    let best = -1
+    for (const m of finalModels) {
+      const s = scoreAgainst(m, centroid)
+      if (s > best) best = s
+    }
+    db.updatePersonSimilarityToNamed(personId, best)
+  }
+
   // A rename/merge can drain every face out of a person row (its identity was
   // folded into another one above); leaving it behind would show up as a
   // "0 photos" ghost card in the People view.

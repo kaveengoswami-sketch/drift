@@ -137,6 +137,10 @@ export interface Person {
   coverFaceId: number | null
   isHidden: number
   createdAt: number
+  /** Best cosine similarity of this person's centroid to any named person's
+   *  model, as of the last clustering pass. Null for named people and for
+   *  anyone not yet scored. */
+  maxSimilarityToNamed: number | null
   faceCount: number
   coverPhotoPath?: string | null
   coverBbox?: { x: number; y: number; w: number; h: number } | null
