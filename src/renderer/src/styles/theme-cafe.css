@@ -115,14 +115,24 @@
   --r-pill: 999px;
 
   /* ---- typography ----
-     --font stays the platform UI face: filenames and paths still have
-     to survive 12px, and no webfont may be fetched. The café voice is
-     carried by --font-label, widened, plus the scoped rules below that
-     hand it the titles and the date headers as well. */
+     The typewriter is the interface, not an accent on it. --font itself
+     becomes the mono face, so every sidebar row, menu item, button and
+     dialog inherits it rather than only the handful of labels that were
+     opted in by hand. Cascadia Mono ships with Windows 11 and Consolas
+     with everything older, so this still resolves offline with no
+     bundled font and no network request.
+
+     The darkroom theme deliberately keeps a UI sans here so filenames
+     stay legible at 12px; that trade reads differently on this theme,
+     where a mono column of names is the point. Set at 12.5px so the
+     wider mono advance still fits a 200px sidebar. */
+  --font: var(--font-label);
   --font-display: var(--font-label);
   --label-track: 0.14em;
+  --fs-body: 12.5px;
 
   /* ---- café-only additions ---- */
+  --paper-viewer: #E4D9C3;                /* the table a print is laid on */
   --cafe-card:   #FCF8EF;                 /* print mount */
   --cafe-stamp:  #A33B28;                 /* rubber stamp — destructive only, 5.6:1 */
   --cafe-leader: rgba(43, 39, 33, 0.30);  /* the dot leader */
@@ -151,70 +161,163 @@
    the component sheets that no token reaches.
    ==================================================================== */
 
-/* ---- restoring dark chrome inside the surfaces that stay dark --------
-   These four controls are styled only through .glass, which now reads
-   paper-coloured tokens. Restated here as the darkroom theme's own
-   --glass-bg-modal/--glass-border-color/--modal-shadow values, fixed
-   rather than tokenized: this is a specific exception, not a second
-   theme, so it should not drift if the paper palette above changes. */
-[data-theme="cafe"] .editor-toolbar,
-[data-theme="cafe"] .viewer-toolbar,
-[data-theme="cafe"] .slideshow-controls,
-[data-theme="cafe"] .ip-suggestions {
-  background: rgba(28, 28, 34, 0.65);
-  backdrop-filter: blur(44px) saturate(180%);
-  -webkit-backdrop-filter: blur(44px) saturate(180%);
-  border-color: rgba(255, 255, 255, 0.16);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.15),
-    0 24px 60px rgba(0, 0, 0, 0.65),
-    0 8px 24px rgba(0, 0, 0, 0.35);
-  color: rgba(255, 255, 255, 0.94);
+/* ---- the viewer, on paper -------------------------------------------
+   The viewer, the editor and their chrome are all hardcoded light-on-dark
+   in the component sheets, so on this theme they have to be restated
+   rather than tokenized away.
+
+   Opening a photo used to drop straight out of the theme into a black
+   room. It now stays on paper: a deeper stock than the grid, so the
+   photograph reads as a print laid on the table rather than a hole cut
+   through it.
+
+   The one thing kept from the dark treatment is the drop shadow under
+   the print — on cream it's what separates a light photo from the paper
+   behind it, and it does that job better than any border would. */
+[data-theme="cafe"] .viewer-backdrop {
+  background: var(--paper-viewer);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
-/* .ip-suggestions is a dropdown of plain buttons; restore their hover
-   state to the darkroom's, since --hover/--bg-hover are cream here. */
-[data-theme="cafe"] .ip-suggestions button:hover {
-  background: rgba(255, 255, 255, 0.08);
+[data-theme="cafe"] .viewer-media-wrap {
+  filter: drop-shadow(0 14px 34px rgba(43, 39, 33, 0.34));
 }
 
-/* The icon buttons and controls living inside those three containers
-   still read --text-secondary / --bg-hover / --bg-active for their own
-   colour and hover state — the same shared tokens the light chrome
-   uses, now pointed at dark ink and a near-invisible dark-on-cream
-   wash. Restated as the darkroom's own light-on-dark values so a
-   heart, an info toggle, or a slideshow control stays legible on the
-   dark container it now sits inside. */
-[data-theme="cafe"] .editor-toolbar .icon-btn,
-[data-theme="cafe"] .viewer-toolbar .icon-btn,
-[data-theme="cafe"] .slideshow-controls .icon-btn,
-[data-theme="cafe"] .editor-ratio,
-[data-theme="cafe"] .editor-btn {
-  color: rgba(255, 255, 255, 0.62);
+/* Top bar: the gradient exists to lift white text off a dark photo.
+   On paper it just dirties the corner, so it goes and the text inks. */
+[data-theme="cafe"] .viewer-topbar {
+  background: none;
+  color: var(--text-primary);
 }
-[data-theme="cafe"] .editor-toolbar .icon-btn:hover,
-[data-theme="cafe"] .viewer-toolbar .icon-btn:hover,
-[data-theme="cafe"] .slideshow-controls .icon-btn:hover,
-[data-theme="cafe"] .editor-ratio:hover:not(:disabled),
-[data-theme="cafe"] .editor-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.94);
+[data-theme="cafe"] .viewer-counter {
+  color: var(--text-primary);
 }
-[data-theme="cafe"] .editor-toolbar .icon-btn.active,
-[data-theme="cafe"] .viewer-toolbar .icon-btn.active,
-[data-theme="cafe"] .slideshow-controls .icon-btn.active {
-  background: rgba(255, 255, 255, 0.14);
-  color: var(--accent);
+[data-theme="cafe"] .viewer-filename {
+  color: var(--text-secondary);
 }
-[data-theme="cafe"] .editor-ratio.active {
-  background: rgba(62, 92, 67, 0.30);
-  color: rgba(255, 255, 255, 0.94);
+[data-theme="cafe"] .viewer-close {
+  background: var(--bg-elevated);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
 }
-/* .editor-btn.primary already reads --accent/--accent-text (fern on
-   cream-text), which carries the theme's identity into this one dark
-   screen the same deliberate way the darkroom's amber does — left
-   alone on purpose, not an oversight. */
+[data-theme="cafe"] .viewer-close:hover {
+  background: var(--bg-active);
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+[data-theme="cafe"] .viewer-arrow {
+  color: var(--text-tertiary);
+}
+[data-theme="cafe"] .viewer-arrow:hover {
+  color: var(--text-primary);
+  background: rgba(43, 39, 33, 0.06);
+}
+
+/* The floating pills are print mounts like the grid tiles: opaque card
+   stock, hairline, warm shadow. .glass gives them the modal tokens, and
+   the blur is already zeroed, so only the shadow needs restating. */
+[data-theme="cafe"] .viewer-toolbar,
+[data-theme="cafe"] .editor-toolbar,
+[data-theme="cafe"] .ip-suggestions {
+  background: var(--cafe-card);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 2px 0 rgba(43, 39, 33, 0.04), 0 14px 30px -14px rgba(43, 39, 33, 0.40);
+  color: var(--text-primary);
+}
+
+[data-theme="cafe"] .viewer-layout .info-panel {
+  background: var(--bg-content);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-left: 1px solid var(--separator);
+  box-shadow: -8px 0 24px -16px rgba(43, 39, 33, 0.30);
+}
+
+/* Filmstrip frames get the same mount as a grid tile, and the current
+   one is marked by the fern rule rather than by being the only one not
+   dimmed — dimming reads as "broken" on a light ground. */
+[data-theme="cafe"] .filmstrip-thumb {
+  opacity: 0.62;
+  border-color: transparent;
+  box-shadow: 0 1px 3px rgba(43, 39, 33, 0.16);
+}
+[data-theme="cafe"] .filmstrip-thumb:hover {
+  opacity: 0.92;
+}
+[data-theme="cafe"] .filmstrip-thumb.current {
+  opacity: 1;
+  border-color: var(--accent);
+}
+
+/* The editor keeps its own dark stage — a crop is judged against a
+   neutral surround, and its white crop rules and handles are drawn for
+   exactly that — but its toolbar is paper like every other pill. */
+[data-theme="cafe"] .editor {
+  background: rgba(28, 24, 20, 0.94);
+}
+
+/* The slideshow stays dark on purpose: it is the one full-bleed
+   presentation mode, where the room lights go down and nothing but the
+   photograph should be on screen. Warm espresso rather than pure black
+   so it still belongs to this palette. */
+[data-theme="cafe"] .slideshow {
+  background: #17130F;
+}
+[data-theme="cafe"] .slideshow-controls {
+  background: rgba(28, 24, 20, 0.82);
+  border: 1px solid rgba(252, 248, 239, 0.14);
+  box-shadow: 0 14px 30px -14px rgba(0, 0, 0, 0.6);
+}
+[data-theme="cafe"] .slideshow-controls .icon-btn {
+  color: rgba(252, 248, 239, 0.62);
+}
+[data-theme="cafe"] .slideshow-controls .icon-btn:hover {
+  background: rgba(252, 248, 239, 0.10);
+  color: rgba(252, 248, 239, 0.96);
+}
 [data-theme="cafe"] .slideshow-count {
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(252, 248, 239, 0.55);
+}
+
+/* Face chips were drawn to sit on a dark photo: a white ring and a
+   translucent white fill. On paper they become the same print mount as
+   a grid tile, and the hover popover inks rather than inverting. */
+[data-theme="cafe"] .face-chip {
+  background: var(--cafe-card);
+  box-shadow: 0 0 0 1.5px var(--border-strong), 0 2px 8px rgba(43, 39, 33, 0.28);
+}
+[data-theme="cafe"] .face-chip-wrap:hover .face-chip {
+  box-shadow: 0 0 0 2px var(--accent), 0 3px 12px rgba(43, 39, 33, 0.34);
+}
+[data-theme="cafe"] .face-chip-pop {
+  background: var(--cafe-card);
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: 0 4px 14px -6px rgba(43, 39, 33, 0.40);
+}
+[data-theme="cafe"] .face-chip-name.is-unnamed {
+  color: var(--text-tertiary);
+}
+[data-theme="cafe"] .face-chip-detach {
+  background: rgba(43, 39, 33, 0.10);
+  color: var(--text-secondary);
+}
+[data-theme="cafe"] .face-chip-detach:hover {
+  background: var(--cafe-stamp);
+  color: #F9F1E8;
+}
+[data-theme="cafe"] .face-chip-more {
+  background: var(--cafe-card);
+  box-shadow: 0 0 0 1.5px var(--border-strong);
+  color: var(--text-secondary);
+}
+/* The ring's dark halo exists to hold it off a bright photo; on this
+   theme the fern already reads, and the halo just muddies it. */
+[data-theme="cafe"] .viewer-face-ring {
+  box-shadow: 0 0 0 1px rgba(252, 248, 239, 0.55);
 }
 
 /* ---- scrollbars ----------------------------------------------------
