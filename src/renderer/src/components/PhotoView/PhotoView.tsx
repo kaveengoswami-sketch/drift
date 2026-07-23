@@ -1,15 +1,29 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion, useMotionValue, animate } from 'framer-motion'
 import { useLibrary } from '@/stores/libraryStore'
 import { useUI } from '@/stores/uiStore'
 import type { Face } from '@shared/types'
 import InfoPanel from '../InfoPanel/InfoPanel'
 import Editor from '../Editor/Editor'
+import FaceChips from './FaceChips'
 import './PhotoView.css'
 import { copyPhotoToClipboard } from '@/lib/copy'
 
 const SPRING = { type: 'spring', stiffness: 320, damping: 26 } as const
 const MAX_ZOOM = 8
+
+/** Where an object-fit: contain image actually lands inside its box. */
+function containRect(
+  boxW: number,
+  boxH: number,
+  imgW: number,
+  imgH: number
+): { left: number; top: number; width: number; height: number } {
+  const s = Math.min(boxW / imgW, boxH / imgH)
+  const width = imgW * s
+  const height = imgH * s
+  return { left: (boxW - width) / 2, top: (boxH - height) / 2, width, height }
+}
 
 export default function PhotoView(): JSX.Element {
   const { photos, viewerIndex, setViewerIndex, toggleFavorite, setSlideshow } = useLibrary()
@@ -19,6 +33,7 @@ export default function PhotoView(): JSX.Element {
   const isVideo = photo?.type === 'video'
 
   const containerRef = useRef<HTMLDivElement>(null)
+  const wrapRef = useRef<HTMLDivElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
   const currentPhotoIdRef = useRef<number | null>(null)
   currentPhotoIdRef.current = photo?.id ?? null
@@ -31,6 +46,8 @@ export default function PhotoView(): JSX.Element {
   const [zoomed, setZoomed] = useState(false)
   const [thumbVersion, setThumbVersion] = useState(0)
   const [faces, setFaces] = useState<Face[]>([])
+  const [hoveredFaceId, setHoveredFaceId] = useState<number | null>(null)
+  const [wrapSize, setWrapSize] = useState<{ w: number; h: number } | null>(null)
 
   const fullLoaded = photo ? fullLoadedPhotoId === photo.id : false
   const thumbError = photo ? thumbErrorPhotoId === photo.id : false
@@ -92,6 +109,7 @@ export default function PhotoView(): JSX.Element {
   useEffect(() => {
     if (!photo) return
     let active = true
+    setHoveredFaceId(null)
     window.drift.facesForPhoto(photo.id).then((res) => {
       if (active) setFaces(res || [])
     })
@@ -99,6 +117,46 @@ export default function PhotoView(): JSX.Element {
       active = false
     }
   }, [photo?.id])
+
+  // The media wrap fills the stage; the image is letterboxed inside it. Track the
+  // wrap so the hover ring can be placed on the image itself, not the wrap.
+  useEffect(() => {
+    const el = wrapRef.current
+    if (!el) return
+    const ro = new ResizeObserver(([entry]) => {
+      const r = entry.contentRect
+      setWrapSize({ w: r.width, h: r.height })
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [photo?.id])
+
+  const hoveredFace = hoveredFaceId === null ? null : faces.find((f) => f.id === hoveredFaceId) ?? null
+
+  const imageRect = useMemo(
+    () =>
+      wrapSize && photo?.width && photo?.height
+        ? containRect(wrapSize.w, wrapSize.h, photo.width, photo.height)
+        : null,
+    [wrapSize, photo?.width, photo?.height]
+  )
+
+  const detachFace = useCallback(
+    (f: Face): void => {
+      askConfirm({
+        title: 'Detach face?',
+        message: `Remove "${f.personName || 'this face'}" assignment from this person?`,
+        confirmLabel: 'Detach',
+        danger: true,
+        onConfirm: async () => {
+          await window.drift.detachFace(f.id)
+          const updated = await window.drift.facesForPhoto(f.photoId)
+          setFaces(updated)
+        }
+      })
+    },
+    [askConfirm]
+  )
 
   const navigate = useCallback(
     (dir: 1 | -1): void => {
@@ -237,6 +295,7 @@ export default function PhotoView(): JSX.Element {
           <AnimatePresence mode="popLayout" initial={false}>
             <motion.div
               key={photo.id}
+              ref={wrapRef}
               className="viewer-media-wrap"
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -282,45 +341,27 @@ export default function PhotoView(): JSX.Element {
                       opacity: 1
                     }}
                   />
-                  {/* Face bounding box overlay */}
-                  {faces.length > 0 && (
-                    <div className="viewer-faces-layer">
-                      {faces.map((f) => (
-                        <div
-                          key={f.id}
-                          className="viewer-face-box"
-                          style={{
-                            left: `${f.bboxX * 100}%`,
-                            top: `${f.bboxY * 100}%`,
-                            width: `${f.bboxW * 100}%`,
-                            height: `${f.bboxH * 100}%`
-                          }}
-                        >
-                          <div className="viewer-face-badge">
-                            <span className="viewer-face-name">{f.personName || 'Unnamed Face'}</span>
-                            <button
-                              className="viewer-face-detach-btn"
-                              title="Detach face assignment"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                askConfirm({
-                                  title: 'Detach face?',
-                                  message: `Remove "${f.personName || 'this face'}" assignment from this person?`,
-                                  confirmLabel: 'Detach',
-                                  danger: true,
-                                  onConfirm: async () => {
-                                    await window.drift.detachFace(f.id)
-                                    const updated = await window.drift.facesForPhoto(photo.id)
-                                    setFaces(updated)
-                                  }
-                                })
-                              }}
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                  {/* Highlight ring — only for the face chip under the cursor, so
+                      the photo itself stays unobstructed while browsing. */}
+                  {hoveredFace && imageRect && (
+                    <div
+                      className="viewer-face-ring-layer"
+                      style={{
+                        left: imageRect.left,
+                        top: imageRect.top,
+                        width: imageRect.width,
+                        height: imageRect.height
+                      }}
+                    >
+                      <div
+                        className="viewer-face-ring"
+                        style={{
+                          left: `${hoveredFace.bboxX * 100}%`,
+                          top: `${hoveredFace.bboxY * 100}%`,
+                          width: `${hoveredFace.bboxW * 100}%`,
+                          height: `${hoveredFace.bboxH * 100}%`
+                        }}
+                      />
                     </div>
                   )}
                 </>
@@ -402,6 +443,20 @@ export default function PhotoView(): JSX.Element {
               </svg>
             </button>
           </div>
+
+          {/* face chips — circular crops tucked in the corner, Apple Photos style */}
+          {!isVideo && (
+            <div className={`viewer-face-dock${filmstripVisible ? ' with-filmstrip' : ''}`}>
+              <FaceChips
+                photo={photo}
+                faces={faces}
+                thumbVersion={thumbVersion}
+                hoveredId={hoveredFaceId}
+                onHover={setHoveredFaceId}
+                onDetach={detachFace}
+              />
+            </div>
+          )}
 
           {/* filmstrip */}
           {filmstripVisible && (
