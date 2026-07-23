@@ -14,6 +14,11 @@ export function getDb(): DatabaseSync {
     db = new DatabaseSync(path.join(dir, 'drift.db'))
     db.exec('PRAGMA journal_mode = WAL')
     db.exec('PRAGMA synchronous = NORMAL')
+    // This connection is a singleton for the app's lifetime, so nothing
+    // inside this process contends with it. The one real case this guards
+    // against is external: a second Drift launch, or a backup/AV tool,
+    // holding a transient lock on drift.db. Cheap to set either way.
+    db.exec('PRAGMA busy_timeout = 5000')
     migrate(db)
   }
   return db

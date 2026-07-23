@@ -68,6 +68,22 @@ function extractIdFromString(str: string): number | null {
 
 let mainWindow: BrowserWindow | null = null
 
+// A second launch would open its own DatabaseSync connection onto the same
+// drift.db the first instance already holds open — the one realistic way
+// this single-connection app could hit SQLITE_BUSY. Refusing the second
+// launch and focusing the existing window instead is also just what a
+// single-window desktop app is expected to do.
+if (!app.requestSingleInstanceLock()) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.focus()
+    }
+  })
+}
+
 function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1440,

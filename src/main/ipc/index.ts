@@ -222,9 +222,16 @@ export function registerIpc(win: BrowserWindow): void {
     const dir = path.dirname(known)
     let dest = path.join(dir, `${base} (edited).jpg`)
     let i = 1
-    while (fs.existsSync(dest)) {
+    // Bounded: a folder that already holds hundreds of edited copies of the
+    // same photo would otherwise run existsSync in a tight sync loop on the
+    // main thread once per save. Past the cap, a timestamp guarantees a free
+    // name in one check instead of continuing to count up one at a time.
+    while (fs.existsSync(dest) && i <= 200) {
       dest = path.join(dir, `${base} (edited ${i}).jpg`)
       i++
+    }
+    if (fs.existsSync(dest)) {
+      dest = path.join(dir, `${base} (edited ${Date.now()}).jpg`)
     }
     try {
       fs.writeFileSync(dest, buf)

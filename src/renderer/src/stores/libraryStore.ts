@@ -84,7 +84,7 @@ export const useLibrary = create<LibraryState>((set, get) => ({
     // different photo or past the end. That's why clicking a photo could open
     // nothing: the viewer dereferenced a stale index and rendered empty.
     // Re-resolve both by photo id; null means it's no longer in this view.
-    const { viewerIndex, lastSelectedIndex, photos: prev } = get()
+    const { viewerIndex, lastSelectedIndex, selection, photos: prev } = get()
     const remap = (i: number | null): number | null => {
       if (i === null) return null
       const id = prev[i]?.id
@@ -92,7 +92,17 @@ export const useLibrary = create<LibraryState>((set, get) => ({
       const found = photos.findIndex((p) => p.id === id)
       return found >= 0 ? found : null
     }
-    set({ photos, viewerIndex: remap(viewerIndex), lastSelectedIndex: remap(lastSelectedIndex) })
+    // `selection` holds photo ids, not indices, so it doesn't go stale the
+    // same way viewerIndex/lastSelectedIndex do — but an id can still
+    // outlive its photo (trashed or removed by a background scan), and left
+    // in place it inflates the "N selected" count for a photo that's no
+    // longer there to act on.
+    const stillPresent = new Set(photos.map((p) => p.id))
+    const nextSelection =
+      selection.size && [...selection].some((id) => !stillPresent.has(id))
+        ? new Set([...selection].filter((id) => stillPresent.has(id)))
+        : selection
+    set({ photos, viewerIndex: remap(viewerIndex), lastSelectedIndex: remap(lastSelectedIndex), selection: nextSelection })
   },
 
   refreshSidebar: async () => {

@@ -82,15 +82,17 @@ export default function App(): JSX.Element {
         return
       }
       if (e.key.toLowerCase() === 'f' && !e.ctrlKey) {
-        if (uiState.contextMenu || uiState.confirm) return
+        if (uiState.contextMenu || uiState.confirm || uiState.settingsOpen) return
         toggleFavorite()
         return
       }
       if (e.key.toLowerCase() === 'i' && lib.viewerIndex !== null) {
+        if (uiState.settingsOpen) return
         uiState.toggleInfoPanel()
         return
       }
       if (e.key.toLowerCase() === 'e' && lib.viewerIndex !== null) {
+        if (uiState.settingsOpen) return
         uiState.setEditMode(true)
         return
       }

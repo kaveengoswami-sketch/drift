@@ -37,8 +37,12 @@ export function moveToTrash(photoIds: number[]): void {
     if (!photo || photo.trashedAt) continue
     const root = folders.get(photo.folderId)
     if (!root) continue
-    const dest = uniqueDest(trashDirFor(root), photo.filename)
     try {
+      // trashDirFor's mkdirSync belongs inside this try: on a read-only
+      // volume or a full disk it throws, and left outside the try that
+      // used to abort the whole batch — every photo after the bad one
+      // silently never got trashed, with nothing logged to explain why.
+      const dest = uniqueDest(trashDirFor(root), photo.filename)
       fs.renameSync(photo.path, dest)
       db.markTrashed(id, dest, photo.path)
       undo.items.push({ photoId: id, from: photo.path, to: dest })
