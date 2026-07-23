@@ -132,10 +132,15 @@ async function generateShrink(job: ThumbJob): Promise<ThumbResult> {
 
     let w = 0
     let h = 0
-    if (info.width) {
+    // Only report dimensions when we decoded the ORIGINAL file. If resolveInput
+    // fell back to the embedded EXIF preview, `input` is a small buffer and its
+    // metadata would describe the preview, not the photo — the parent stores
+    // whatever we send here, so reporting those would corrupt photos.width/height.
+    if (info.width && input === job.filePath) {
       const meta = await sharp(input, { failOn: 'none' }).metadata()
       w = meta.width ?? 0
       h = meta.height ?? 0
+      // sharp reports pre-rotation dims whenever orientation >= 5; store post-rotation.
       if (meta.orientation && meta.orientation >= 5) [w, h] = [h, w]
     }
     return { id: job.id, ok: true, mode: 'shrink', width: w, height: h }
