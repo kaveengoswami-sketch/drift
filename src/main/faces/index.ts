@@ -96,7 +96,17 @@ export async function startFaceScan(win: BrowserWindow): Promise<FaceScanProgres
 
     if (isCancelled) return currentProgress
 
-    // 2. Fetch unscanned photos from database
+    // 2. If the embeddings on disk were produced by an older recogniser or an
+    // older crop, they cannot be compared with new ones — every distance would
+    // be meaningless. Drop the scanned markers so the whole library is
+    // re-embedded; face rows and the names attached to them are preserved by
+    // recordFaceScanResult.
+    const storedVersion = Number(db.getSettings().faceEmbedVersion ?? 0)
+    if (storedVersion !== db.FACE_EMBED_VERSION) {
+      db.invalidateFaceEmbeddings()
+      db.setSetting('faceEmbedVersion', db.FACE_EMBED_VERSION)
+    }
+
     const unscanned = db.getUnscannedPhotos()
     currentProgress = {
       scanned: 0,

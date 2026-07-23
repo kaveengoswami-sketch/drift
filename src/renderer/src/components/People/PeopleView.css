@@ -216,132 +216,210 @@
   margin-bottom: 32px;
 }
 
+/* Section label reads as the eyebrow annotation on a contact sheet, not a
+   heading competing with the faces. The count sits on the same line because
+   "how many are left" is the number you actually triage against. */
 .people-section-title {
-  font-size: var(--fs-title);
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--font-label);
+  font-size: var(--fs-caption);
   font-weight: 600;
-  color: var(--text-secondary);
-  margin-bottom: 16px;
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: 14px;
+  padding-bottom: 7px;
   border-bottom: 1px solid var(--separator);
-  padding-bottom: 6px;
+}
+
+.people-section-title .people-section-tally {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  font-weight: 500;
 }
 
 .people-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 24px 20px;
+  grid-template-columns: repeat(auto-fill, minmax(136px, 1fr));
+  column-gap: 14px;
+  row-gap: 26px;
 }
 
-/* Individual Person Card */
+/* Disclosure for single-photo clusters. These are overwhelmingly false
+   positives — foliage, ears, motion blur — and left inline they bury the
+   handful of clusters actually worth naming. */
+.people-oneoffs-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px 5px 10px;
+  margin-bottom: 14px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--fs-caption);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.people-oneoffs-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.people-oneoffs-toggle svg {
+  transition: transform 0.15s ease;
+}
+.people-oneoffs-toggle[aria-expanded='true'] svg {
+  transform: rotate(90deg);
+}
+
+/* ---- Person card: a proof print on a captioned mount --------------------
+   The circular avatar this replaced was the address-book form: it presumes a
+   dozen curated identities. This view is raw detector output, so the job is
+   recognise-and-annotate. A 4:5 portrait keeps the hair, jaw and shoulders
+   that make a small face identifiable, and the caption is a live field so
+   naming is one click and a keystroke rather than a mode change. */
+
 .person-card {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 12px;
-  border-radius: var(--r-lg);
-  cursor: pointer;
-  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
   user-select: none;
 }
 
-.person-card:hover {
-  background: var(--bg-hover);
-  transform: translateY(-2px);
-}
-
-.person-card.selected {
-  background: var(--bg-selected);
-  box-shadow: 0 0 0 2px var(--accent);
-}
-
-.person-card.drag-over {
-  background: var(--bg-active);
-  box-shadow: 0 0 0 2px var(--accent);
-  transform: scale(1.04);
-}
-
-/* Circular face avatar container */
-.person-avatar-wrap {
-  width: 130px;
-  height: 130px;
-  margin-bottom: 10px;
-}
-
-.person-avatar {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  overflow: hidden;
+.person-print {
   position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  padding: 0;
+  overflow: hidden;
+  border: none;
+  border-radius: var(--r-md);
   background: var(--bg-elevated);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border: 2px solid var(--border-strong);
+  cursor: pointer;
+  /* Hairline edge + top highlight: the print sitting proud of the mount. */
+  box-shadow:
+    inset 0 0 0 1px var(--border-strong),
+    0 1px 2px rgba(0, 0, 0, 0.12);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.person-avatar-placeholder {
-  width: 100%;
-  height: 100%;
+.person-print:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 0 0 1px var(--border-strong),
+    0 6px 16px rgba(0, 0, 0, 0.18);
+}
+
+.person-print:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.person-print-img {
+  position: absolute;
+  height: auto;
+  max-width: none;
+  display: block;
+}
+
+.person-print-empty {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-tertiary);
 }
 
-/* Person details */
-.person-info {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  width: 100%;
-  text-align: center;
+.person-card.selected .person-print {
+  box-shadow:
+    inset 0 0 0 2px var(--accent),
+    0 6px 16px rgba(0, 0, 0, 0.18);
 }
 
-.person-name-row {
+.person-card.drag-over .person-print {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow:
+    inset 0 0 0 2px var(--accent),
+    0 8px 20px rgba(0, 0, 0, 0.22);
+}
+
+.person-print-check {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 19px;
+  height: 19px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-text);
 }
 
-.person-name {
+/* ---- The mount: caption rule + tally ---- */
+
+.person-mount {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 9px;
+  padding: 0 2px;
+}
+
+/* Always a live field. Unnamed reads as a ruled blank waiting to be filled
+   in; once named the rule disappears and it is simply the caption. */
+.person-caption {
+  flex: 1;
+  min-width: 0;
+  padding: 1px 0 2px;
+  border: none;
+  border-bottom: 1px dashed var(--border-strong);
+  border-radius: 0;
+  background: transparent;
+  font-family: var(--font);
   font-size: var(--fs-body);
-  font-weight: 600;
   color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 130px;
-  padding: 2px 4px;
-  border-radius: var(--r-sm);
+  transition: border-color 0.12s ease;
 }
 
-.person-name:hover {
-  background: var(--bg-hover);
+.person-caption::placeholder {
+  color: var(--text-tertiary);
 }
 
-.person-add-name {
+.person-caption.is-named {
+  font-weight: 600;
+  border-bottom-color: transparent;
+}
+
+.person-caption:hover {
+  border-bottom-color: var(--text-tertiary);
+}
+
+.person-caption:focus {
+  outline: none;
+  border-bottom: 1px solid var(--accent);
+}
+
+.person-tally {
+  flex-shrink: 0;
+  font-family: var(--font-label);
   font-size: var(--fs-caption);
-  font-weight: 500;
-  color: var(--accent);
-  padding: 2px 8px;
-  border-radius: var(--r-pill);
-  background: var(--bg-hover);
-  transition: background 0.15s ease;
-}
-.person-add-name:hover {
-  background: var(--bg-active);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
 }
 
-.person-name-input {
-  width: 130px;
-  font-size: var(--fs-body);
-  text-align: center;
-  padding: 2px 6px;
-}
-
-.person-count {
-  font-size: var(--fs-caption);
-  color: var(--text-secondary);
+@media (prefers-reduced-motion: reduce) {
+  .person-print,
+  .person-print:hover,
+  .person-card.drag-over .person-print {
+    transition: none;
+    transform: none;
+  }
 }
 
 /* Failed-scan notice on the empty hero. Without this the 'error' phase had no

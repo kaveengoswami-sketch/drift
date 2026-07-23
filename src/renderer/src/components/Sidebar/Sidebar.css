@@ -44,13 +44,14 @@
   padding: 14px 8px 4px;
 }
 
-/* Section title: 11px, 600 weight, secondary color, title case */
+/* Section title in the label voice: these name regions of the archive. */
 .sb-section-title {
+  font-family: var(--font-label);
   font-size: var(--fs-caption);
   font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: none;
-  color: var(--text-secondary);
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+  color: var(--text-tertiary);
   display: flex;
   align-items: center;
   gap: 5px;

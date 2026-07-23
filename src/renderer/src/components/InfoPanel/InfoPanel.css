@@ -16,9 +16,10 @@
 }
 
 .ip-subtitle {
+  font-family: var(--font-label);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--label-track);
   text-transform: uppercase;
   color: var(--text-3);
   margin: 16px 0 8px;
@@ -32,8 +33,16 @@
 }
 
 .ip-key {
+  font-family: var(--font-label);
   font-size: 11px;
+  letter-spacing: 0.02em;
   color: var(--text-3);
+}
+
+/* Dimensions, sizes and dates line up in a column when they share the
+   mono figure width — in an archive these values are the content. */
+.ip-val {
+  font-variant-numeric: tabular-nums;
 }
 
 .ip-val {

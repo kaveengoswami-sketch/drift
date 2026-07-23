@@ -734,19 +734,88 @@ export function recordFaceScanResult(
   const now = Date.now()
   const insertFaceStmt = d.prepare(`
     INSERT INTO faces (photoId, personId, bboxX, bboxY, bboxW, bboxH, embedding, confidence, detectionType, createdAt)
-    VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
   const markScannedStmt = d.prepare(`
     INSERT OR REPLACE INTO photo_face_scanned (photoId, scannedAt) VALUES (?, ?)
   `)
+  const existingStmt = d.prepare(
+    'SELECT id, personId, bboxX, bboxY, bboxW, bboxH FROM faces WHERE photoId = ? AND personId IS NOT NULL'
+  )
+  const clearStmt = d.prepare('DELETE FROM faces WHERE photoId = ?')
+
+  // Re-scanning a photo used to append a second copy of every face. It now
+  // replaces them — and carries any person assignment across by box overlap,
+  // so a change that forces a re-embed (a new recognition model, or a change
+  // to how faces are cropped) does not throw away names the user has entered.
+  const prior = existingStmt.all(photoId) as unknown as Array<{
+    id: number
+    personId: number
+    bboxX: number
+    bboxY: number
+    bboxW: number
+    bboxH: number
+  }>
+
+  const claimed = new Set<number>()
+  const carryOver = (f: { bboxX: number; bboxY: number; bboxW: number; bboxH: number }): number | null => {
+    let bestId: number | null = null
+    let bestIou = 0.5 // below this the boxes are not the same face
+    for (const old of prior) {
+      if (claimed.has(old.id)) continue
+      const ix = Math.max(0, Math.min(f.bboxX + f.bboxW, old.bboxX + old.bboxW) - Math.max(f.bboxX, old.bboxX))
+      const iy = Math.max(0, Math.min(f.bboxY + f.bboxH, old.bboxY + old.bboxH) - Math.max(f.bboxY, old.bboxY))
+      const inter = ix * iy
+      const union = f.bboxW * f.bboxH + old.bboxW * old.bboxH - inter
+      const iou = union > 0 ? inter / union : 0
+      if (iou > bestIou) {
+        bestIou = iou
+        bestId = old.id
+      }
+    }
+    if (bestId !== null) claimed.add(bestId)
+    return bestId === null ? null : (prior.find((o) => o.id === bestId) as { personId: number }).personId
+  }
 
   tx(() => {
+    clearStmt.run(photoId)
     for (const f of faces) {
-      insertFaceStmt.run(photoId, f.bboxX, f.bboxY, f.bboxW, f.bboxH, Buffer.from(f.embedding), f.confidence, f.detectionType, now)
+      insertFaceStmt.run(
+        photoId,
+        carryOver(f),
+        f.bboxX,
+        f.bboxY,
+        f.bboxW,
+        f.bboxH,
+        Buffer.from(f.embedding),
+        f.confidence,
+        f.detectionType,
+        now
+      )
     }
     markScannedStmt.run(photoId, now)
   })
 }
+
+/**
+ * Bumped whenever stored embeddings stop being comparable with freshly
+ * computed ones — a different recognition model, or a change to how the face
+ * is cropped before it reaches the model. Both happened at version 2:
+ * w600k_mbf -> w600k_r50, and box-crop -> 5-point landmark alignment.
+ */
+export const FACE_EMBED_VERSION = 2
+
+/**
+ * Clear the scanned marker for every photo so the next scan re-embeds the
+ * whole library. Face rows are left alone — recordFaceScanResult replaces
+ * them per photo and carries person assignments across.
+ */
+export function invalidateFaceEmbeddings(): void {
+  getDb().prepare('DELETE FROM photo_face_scanned').run()
+}
+
+/** 512 float32 values. Anything else is a truncated or failed embedding. */
+export const EMBEDDING_BYTES = 512 * 4
 
 export interface FaceEmbeddingRow {
   id: number
@@ -757,10 +826,14 @@ export interface FaceEmbeddingRow {
 }
 
 export function getAllFaceEmbeddings(): FaceEmbeddingRow[] {
+  // A face whose embedding is missing or the wrong size cannot be compared
+  // with anything, and handing one to the clusterer crashes it on `.buffer`.
+  // EMBEDDING_BYTES is 512 float32s.
   return getDb().prepare(`
     SELECT f.id, f.photoId, f.personId, f.embedding, p.name as personName
     FROM faces f
     LEFT JOIN people p ON p.id = f.personId
+    WHERE f.embedding IS NOT NULL AND length(f.embedding) = ${EMBEDDING_BYTES}
   `).all() as unknown as FaceEmbeddingRow[]
 }
 
