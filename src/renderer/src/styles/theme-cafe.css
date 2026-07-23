@@ -35,8 +35,15 @@
    the photograph reads, and those three surfaces are where you actually
    judge an image. The grid honours the paper — every thumbnail gets a
    mount so it reads as laid on the table — but full-screen review does
-   not. Their hardcoded dark overlays are therefore correct as they
-   stand and are intentionally not overridden below.
+   not. Most of those surfaces hardcode their own rgba fills already, so
+   they need nothing here. But a few of their controls — the viewer's
+   bottom action pill, the slideshow's transport bar, the editor's
+   toolbar, the tag autocomplete — are styled only through the shared
+   .glass utility, the same one every light chrome surface uses. Since
+   .glass reads --glass-bg-modal and friends, and those tokens are
+   repointed to paper for this theme, those specific controls need an
+   explicit dark restatement below or they would silently go cream
+   inside a screen this theme is supposed to keep dark.
    ==================================================================== */
 
 :root[data-theme="cafe"] {
@@ -52,8 +59,16 @@
 
   /* ---- glass becomes paper ----
      Same token names, so every chrome surface converts at once; the
-     blur radii go to zero and the fills go opaque. */
-  --glass-bg-modal:    #F4EDDF;
+     blur radii go to zero and the fills go opaque.
+
+     --glass-bg-modal is the raised card tone, not the content tone: it
+     backs the context menu, the confirm dialog, and the scan banner,
+     all of which float ABOVE the content field rather than sitting
+     flush with it like the sidebar and toolbar do. Without the blur
+     that separates them in the darkroom theme, giving it --bg-content's
+     own colour would leave those surfaces distinguished only by a
+     hairline border. */
+  --glass-bg-modal:    #FCF8EF;
   --glass-bg-sidebar:  #EDE4D2;
   --glass-bg-toolbar:  #EDE4D2;
   /* Consumed by .toast but defined by no theme, so toasts currently
@@ -136,6 +151,72 @@
    the component sheets that no token reaches.
    ==================================================================== */
 
+/* ---- restoring dark chrome inside the surfaces that stay dark --------
+   These four controls are styled only through .glass, which now reads
+   paper-coloured tokens. Restated here as the darkroom theme's own
+   --glass-bg-modal/--glass-border-color/--modal-shadow values, fixed
+   rather than tokenized: this is a specific exception, not a second
+   theme, so it should not drift if the paper palette above changes. */
+[data-theme="cafe"] .editor-toolbar,
+[data-theme="cafe"] .viewer-toolbar,
+[data-theme="cafe"] .slideshow-controls,
+[data-theme="cafe"] .ip-suggestions {
+  background: rgba(28, 28, 34, 0.65);
+  backdrop-filter: blur(44px) saturate(180%);
+  -webkit-backdrop-filter: blur(44px) saturate(180%);
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 24px 60px rgba(0, 0, 0, 0.65),
+    0 8px 24px rgba(0, 0, 0, 0.35);
+  color: rgba(255, 255, 255, 0.94);
+}
+/* .ip-suggestions is a dropdown of plain buttons; restore their hover
+   state to the darkroom's, since --hover/--bg-hover are cream here. */
+[data-theme="cafe"] .ip-suggestions button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* The icon buttons and controls living inside those three containers
+   still read --text-secondary / --bg-hover / --bg-active for their own
+   colour and hover state — the same shared tokens the light chrome
+   uses, now pointed at dark ink and a near-invisible dark-on-cream
+   wash. Restated as the darkroom's own light-on-dark values so a
+   heart, an info toggle, or a slideshow control stays legible on the
+   dark container it now sits inside. */
+[data-theme="cafe"] .editor-toolbar .icon-btn,
+[data-theme="cafe"] .viewer-toolbar .icon-btn,
+[data-theme="cafe"] .slideshow-controls .icon-btn,
+[data-theme="cafe"] .editor-ratio,
+[data-theme="cafe"] .editor-btn {
+  color: rgba(255, 255, 255, 0.62);
+}
+[data-theme="cafe"] .editor-toolbar .icon-btn:hover,
+[data-theme="cafe"] .viewer-toolbar .icon-btn:hover,
+[data-theme="cafe"] .slideshow-controls .icon-btn:hover,
+[data-theme="cafe"] .editor-ratio:hover:not(:disabled),
+[data-theme="cafe"] .editor-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.94);
+}
+[data-theme="cafe"] .editor-toolbar .icon-btn.active,
+[data-theme="cafe"] .viewer-toolbar .icon-btn.active,
+[data-theme="cafe"] .slideshow-controls .icon-btn.active {
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--accent);
+}
+[data-theme="cafe"] .editor-ratio.active {
+  background: rgba(62, 92, 67, 0.30);
+  color: rgba(255, 255, 255, 0.94);
+}
+/* .editor-btn.primary already reads --accent/--accent-text (fern on
+   cream-text), which carries the theme's identity into this one dark
+   screen the same deliberate way the darkroom's amber does — left
+   alone on purpose, not an oversight. */
+[data-theme="cafe"] .slideshow-count {
+  color: rgba(255, 255, 255, 0.55);
+}
+
 /* ---- scrollbars ----------------------------------------------------
    global.css sets a neutral grey literal, which reads cold and blueish
    against cream. */
@@ -175,6 +256,24 @@
 [data-theme="cafe"] .tb-subtitle {
   font-family: var(--font-label);
   font-size: 10px;
+  letter-spacing: 0.05em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The People view's own page header names a region exactly like the
+   toolbar title and the grid date headers do, and had been left out of
+   the conversion — the one heading on this screen still in the plain
+   UI face while its siblings all read as the menu board. */
+[data-theme="cafe"] .people-header-stats h2 {
+  font-family: var(--font-label);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+[data-theme="cafe"] .people-count-badge {
+  font-family: var(--font-label);
+  font-size: 10.5px;
   letter-spacing: 0.05em;
   font-variant-numeric: tabular-nums;
 }
@@ -403,7 +502,4 @@
   box-shadow:
     inset 0 0 0 2px var(--accent),
     0 8px 20px -7px rgba(43, 39, 33, 0.38);
-}
-[data-theme="cafe"] .accent-dot {
-  box-shadow: 0 1px 3px rgba(43, 39, 33, 0.22);
 }
