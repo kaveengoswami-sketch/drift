@@ -1,4 +1,28 @@
-/* Drift design system -- Apple Photos macOS dark/light aesthetic */
+/* Drift design system
+   ====================================================================
+   Drift is a local-first archive tool: every photo, thumbnail, face
+   embedding and index lives on this machine and none of it leaves. The
+   reference point is the darkroom and the archive, not the cloud photo
+   feed — so the vocabulary here is safelight, contact sheet, print mount
+   and film rebate.
+
+   Two rules the palette is built around:
+
+   1. Surfaces stay chromatically neutral graphite. A tinted background
+      shifts how every photograph above it reads, so this is the one axis
+      where a photo tool does not get to be expressive.
+   2. Because of (1), the identity is carried entirely by the accent and
+      the labelling voice. The accent is darkroom safelight amber — warm,
+      archival, and the deliberate opposite of the system blue every
+      other photo app reaches for.
+
+   Type has two roles. Body is the platform UI face, because filenames
+   and paths have to stay legible at 12px. Everything that labels rather
+   than reads — section eyebrows, field names, counts, dimensions, dates,
+   EXIF — is set in mono with wide tracking. In an archive the metadata
+   is content, and mono makes it line up in columns you can scan. That
+   labelling strip is the signature element: it is the film rebate,
+   carried across every surface of the app. */
 
 :root,
 :root[data-theme="dark"] {
@@ -29,10 +53,12 @@
   --text-secondary:  rgba(255, 255, 255, 0.62);
   --text-tertiary:   rgba(255, 255, 255, 0.42);
 
-  /* ---- accent (macOS dark blue) ---- */
-  --accent:          #0A84FF;
-  --accent-hover:    #3D9BFF;
-  --accent-text:     #ffffff;
+  /* ---- accent: safelight amber ----
+     8.0:1 on --bg-content. --accent-text is near-black, not white: amber
+     is a light hue and white on it fails contrast at any usable size. */
+  --accent:          #F09A4B;
+  --accent-hover:    #FFB169;
+  --accent-text:     #1A1206;
 
   /* ---- lines ---- */
   --separator:       rgba(255, 255, 255, 0.10);
@@ -44,9 +70,18 @@
   --r-lg: 10px;
   --r-pill: 999px;
 
-  /* ---- typography ---- */
+  /* ---- typography ----
+     --font-label is the app's characteristic voice: everything that
+     labels or counts is set in it. Cascadia Mono ships with Windows 11
+     and Consolas with everything older, so this resolves offline with no
+     bundled font and no network request. */
   --font: "Segoe UI Variable Text", "Segoe UI", -apple-system, system-ui, sans-serif;
   --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --font-label: "Cascadia Mono", Consolas, ui-monospace, "SFMono-Regular", monospace;
+
+  /* Tracking for the label voice. Mono set uppercase at caption size needs
+     the extra air or it reads as code rather than as signage. */
+  --label-track: 0.10em;
 
   --fs-caption: 11px;
   --fs-body:    13px;
@@ -74,7 +109,7 @@
   --hover:           var(--bg-hover);
   --active:          var(--bg-active);
   --glass-border:    var(--border-strong);
-  --accent-soft:     rgba(10, 132, 255, 0.25);
+  --accent-soft:     rgba(240, 154, 75, 0.22);
 }
 
 /* Light mode overrides */
@@ -104,8 +139,11 @@
     --text-secondary:  rgba(0, 0, 0, 0.60);
     --text-tertiary:   rgba(0, 0, 0, 0.40);
 
-    --accent:          #007AFF;
-    --accent-hover:    #0066CC;
+    /* Deepened safelight amber: 5.2:1 on the light content surface,
+       where the dark-theme amber would sit at only 1.9:1. */
+    --accent:          #A5540F;
+    --accent-hover:    #8A4409;
+    --accent-text:     #ffffff;
 
     --separator:       rgba(0, 0, 0, 0.10);
     --border-strong:   rgba(0, 0, 0, 0.14);
@@ -139,8 +177,9 @@
   --text-secondary:  rgba(0, 0, 0, 0.60);
   --text-tertiary:   rgba(0, 0, 0, 0.40);
 
-  --accent:          #007AFF;
-  --accent-hover:    #0066CC;
+  --accent:          #A5540F;
+  --accent-hover:    #8A4409;
+  --accent-text:     #ffffff;
 
   --separator:       rgba(0, 0, 0, 0.10);
   --border-strong:   rgba(0, 0, 0, 0.14);
@@ -246,6 +285,28 @@ input:focus {
 .icon-btn.active {
   color: var(--accent);
   background: var(--bg-active);
+}
+
+/* ---- the label voice ----
+   The signature device: a film-rebate strip of mono, uppercase, widely
+   tracked type. Use .label for anything that names a region or a field,
+   and .data for values that want to line up in a column — sizes,
+   dimensions, counts, durations, dates. Never for prose. */
+.label {
+  font-family: var(--font-label);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.data {
+  font-family: var(--font-label);
+  font-size: var(--fs-caption);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
 }
 
 /* Frosted glass utility class */

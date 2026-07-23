@@ -54,9 +54,12 @@
 }
 
 .grid-header-sub {
-  font-size: var(--fs-body, 13px);
-  color: var(--text-secondary, rgba(255,255,255,0.55));
-  line-height: 1.4;
+  font-family: var(--font-label);
+  font-size: var(--fs-caption, 11px);
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+  color: var(--text-tertiary, rgba(255,255,255,0.42));
+  line-height: 1.5;
 }
 
 /* -----------------------------------------------------------------------
@@ -94,7 +97,7 @@
 /* Selected tile: 3px accent outline drawn inside (outline-offset: -3px)
    per design spec section 5. No box-shadow on the outline itself. */
 .tile.selected {
-  outline: 3px solid var(--accent, #0A84FF);
+  outline: 3px solid var(--accent, #F09A4B);
   outline-offset: -3px;
   z-index: 2;
 }
@@ -163,7 +166,7 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--accent, #0A84FF);
+  background: var(--accent, #F09A4B);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -200,7 +203,7 @@
 
 .rubber-band {
   position: absolute;
-  border: 1px solid var(--accent, #0A84FF);
+  border: 1px solid var(--accent, #F09A4B);
   background: rgba(10, 132, 255, 0.12);
   pointer-events: none;
   z-index: 5;
@@ -254,5 +257,8 @@
 }
 
 .grid-footer-count {
-  letter-spacing: 0.01em;
+  font-family: var(--font-label);
+  font-size: var(--fs-caption);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
 }

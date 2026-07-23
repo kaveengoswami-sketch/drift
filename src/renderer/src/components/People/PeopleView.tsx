@@ -16,6 +16,7 @@ export default function PeopleView(): JSX.Element {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [scanProgress, setScanProgress] = useState<FaceScanProgress | null>(null)
   const [renderLimit, setRenderLimit] = useState(60)
+  const [showOneOffs, setShowOneOffs] = useState(false)
 
   const fetchPeople = useCallback(async () => {
     try {
@@ -67,9 +68,22 @@ export default function PeopleView(): JSX.Element {
     return { namedPeople: named, unnamedPeople: unnamed }
   }, [people])
 
+  // A cluster holding a single face is overwhelmingly a false positive —
+  // foliage, an ear, motion blur. Inline they bury the handful of clusters
+  // that are actually worth naming, so they go behind a disclosure.
+  const { suggested, oneOffs } = useMemo(() => {
+    const suggested: Person[] = []
+    const oneOffs: Person[] = []
+    for (const p of unnamedPeople) {
+      if (p.faceCount > 1) suggested.push(p)
+      else oneOffs.push(p)
+    }
+    return { suggested, oneOffs }
+  }, [unnamedPeople])
+
   const allSortedPeople = useMemo(() => {
-    return [...namedPeople, ...unnamedPeople]
-  }, [namedPeople, unnamedPeople])
+    return [...namedPeople, ...suggested, ...oneOffs]
+  }, [namedPeople, suggested, oneOffs])
 
   // Infinite/progressive loading slice for smooth rendering
   useEffect(() => {
@@ -81,8 +95,8 @@ export default function PeopleView(): JSX.Element {
     }
   }, [renderLimit, allSortedPeople.length])
 
-  const visiblePeople = useMemo(() => {
-    return allSortedPeople.slice(0, renderLimit)
+  const visibleIds = useMemo(() => {
+    return new Set(allSortedPeople.slice(0, renderLimit).map((p) => p.id))
   }, [allSortedPeople, renderLimit])
 
   const handleSelect = (id: number, mode: 'single' | 'toggle'): void => {
@@ -189,6 +203,19 @@ export default function PeopleView(): JSX.Element {
     await window.drift.cancelFaceScan()
   }
 
+  const renderCard = (person: Person): JSX.Element => (
+    <PersonCard
+      key={person.id}
+      person={person}
+      selected={selectedIds.has(person.id)}
+      onSelect={handleSelect}
+      onOpen={handleOpen}
+      onNameChange={handleNameChange}
+      onMergeDrop={handleMerge}
+      onContextMenu={handleContextMenu}
+    />
+  )
+
   const isScanning =
     scanProgress &&
     (scanProgress.phase === 'downloading_models' ||
@@ -205,8 +232,8 @@ export default function PeopleView(): JSX.Element {
             <div className="people-scan-text">
               {scanProgress.phase === 'downloading_models' && (
                 <div>
-                  <strong>Downloading face recognition models (~15MB)...</strong>
-                  <div className="people-scan-sub">Setting up local machine learning pipeline</div>
+                  <strong>Downloading face recognition models (~177MB)...</strong>
+                  <div className="people-scan-sub">One-time download. Everything after this runs offline.</div>
                 </div>
               )}
               {scanProgress.phase === 'scanning' && (
@@ -309,45 +336,41 @@ export default function PeopleView(): JSX.Element {
         <div className="people-grid-scroll">
           {namedPeople.length > 0 && (
             <div className="people-section">
-              <h3 className="people-section-title">Named People</h3>
+              <h3 className="people-section-title">
+                Named<span className="people-section-tally">{namedPeople.length}</span>
+              </h3>
+              <div className="people-grid">{namedPeople.map(renderCard)}</div>
+            </div>
+          )}
+
+          {suggested.length > 0 && (
+            <div className="people-section">
+              <h3 className="people-section-title">
+                Suggested<span className="people-section-tally">{suggested.length}</span>
+              </h3>
               <div className="people-grid">
-                {namedPeople.map((person) => (
-                  <PersonCard
-                    key={person.id}
-                    person={person}
-                    selected={selectedIds.has(person.id)}
-                    onSelect={handleSelect}
-                    onOpen={handleOpen}
-                    onNameChange={handleNameChange}
-                    onMergeDrop={handleMerge}
-                    onContextMenu={handleContextMenu}
-                  />
-                ))}
+                {suggested.filter((p) => visibleIds.has(p.id)).map(renderCard)}
               </div>
             </div>
           )}
 
-          {unnamedPeople.length > 0 && (
+          {oneOffs.length > 0 && (
             <div className="people-section">
-              <h3 className="people-section-title">
-                {namedPeople.length > 0 ? 'Suggested People' : 'Detected People'}
-              </h3>
-              <div className="people-grid">
-                {unnamedPeople
-                  .filter((p) => visiblePeople.some((vp) => vp.id === p.id))
-                  .map((person) => (
-                    <PersonCard
-                      key={person.id}
-                      person={person}
-                      selected={selectedIds.has(person.id)}
-                      onSelect={handleSelect}
-                      onOpen={handleOpen}
-                      onNameChange={handleNameChange}
-                      onMergeDrop={handleMerge}
-                      onContextMenu={handleContextMenu}
-                    />
-                  ))}
-              </div>
+              <button
+                className="people-oneoffs-toggle"
+                aria-expanded={showOneOffs}
+                onClick={() => setShowOneOffs((v) => !v)}
+              >
+                <svg width="9" height="9" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
+                  <path d="M3 1l5 4-5 4z" />
+                </svg>
+                {oneOffs.length} faces seen only once
+              </button>
+              {showOneOffs && (
+                <div className="people-grid">
+                  {oneOffs.filter((p) => visibleIds.has(p.id)).map(renderCard)}
+                </div>
+              )}
             </div>
           )}
         </div>

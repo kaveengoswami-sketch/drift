@@ -6,8 +6,9 @@ import { useModalFocus } from '@/lib/useModalFocus'
 import './Settings.css'
 
 import type { FaceScanProgress } from '@shared/types'
+import { ACCENTS, applyAccent, resolveAccent } from '@/lib/accent'
 
-const ACCENTS = ['#6c8cff', '#a86cff', '#ff6c9d', '#ff9d6c', '#6cd9a8', '#4db8e8']
+
 const TRASH_OPTIONS = [7, 14, 30, 60, 90, 0]
 
 function fmtBytes(n: number): string {
@@ -39,11 +40,7 @@ export default function Settings(): JSX.Element {
 
   const setAccent = (accentColor: string): void => {
     setSettings({ accentColor })
-    document.documentElement.style.setProperty('--accent', accentColor)
-    document.documentElement.style.setProperty(
-      '--accent-soft',
-      accentColor + '38'
-    )
+    applyAccent(accentColor)
   }
 
   return (
@@ -112,12 +109,14 @@ export default function Settings(): JSX.Element {
             <div className="settings-row">
               <span>Accent</span>
               <div className="accent-row">
-                {ACCENTS.map((c) => (
+                {ACCENTS.map((a) => (
                   <button
-                    key={c}
-                    className={`accent-dot ${settings.accentColor === c ? 'active' : ''}`}
-                    style={{ background: c }}
-                    onClick={() => setAccent(c)}
+                    key={a.value}
+                    className={`accent-dot ${resolveAccent(settings.accentColor) === a.value ? 'active' : ''}`}
+                    style={{ background: a.value }}
+                    title={a.name}
+                    aria-label={a.name}
+                    onClick={() => setAccent(a.value)}
                   />
                 ))}
               </div>
