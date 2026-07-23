@@ -47,7 +47,10 @@ export default function PhotoView(): JSX.Element {
   const [thumbVersion, setThumbVersion] = useState(0)
   const [faces, setFaces] = useState<Face[]>([])
   const [hoveredFaceId, setHoveredFaceId] = useState<number | null>(null)
-  const [wrapSize, setWrapSize] = useState<{ w: number; h: number } | null>(null)
+  const [boxes, setBoxes] = useState<{
+    stage: { w: number; h: number }
+    wrap: { w: number; h: number }
+  } | null>(null)
 
   const fullLoaded = photo ? fullLoadedPhotoId === photo.id : false
   const thumbError = photo ? thumbErrorPhotoId === photo.id : false
@@ -136,7 +139,10 @@ export default function PhotoView(): JSX.Element {
     const measure = (): void => {
       const el = stage.querySelector('.viewer-media-wrap') as HTMLElement | null
       if (el && el.offsetWidth > 0 && el.offsetHeight > 0) {
-        setWrapSize({ w: el.offsetWidth, h: el.offsetHeight })
+        setBoxes({
+          stage: { w: stage.offsetWidth, h: stage.offsetHeight },
+          wrap: { w: el.offsetWidth, h: el.offsetHeight }
+        })
       }
     }
     measure()
@@ -149,11 +155,25 @@ export default function PhotoView(): JSX.Element {
 
   const imageRect = useMemo(
     () =>
-      wrapSize && photo?.width && photo?.height
-        ? containRect(wrapSize.w, wrapSize.h, photo.width, photo.height)
+      boxes && photo?.width && photo?.height
+        ? containRect(boxes.wrap.w, boxes.wrap.h, photo.width, photo.height)
         : null,
-    [wrapSize, photo?.width, photo?.height]
+    [boxes, photo?.width, photo?.height]
   )
+
+  // Same rect, in stage coordinates. The chips are anchored to the photograph
+  // rather than to the window: the wrap is centred in the stage and the image
+  // is letterboxed inside the wrap, so a chip parked in the stage's own corner
+  // ends up floating in empty space a long way from the picture it describes.
+  const imageInStage = useMemo(() => {
+    if (!boxes || !imageRect) return null
+    return {
+      left: (boxes.stage.w - boxes.wrap.w) / 2 + imageRect.left,
+      top: (boxes.stage.h - boxes.wrap.h) / 2 + imageRect.top,
+      width: imageRect.width,
+      height: imageRect.height
+    }
+  }, [boxes, imageRect])
   const detachFace = useCallback(
     (f: Face): void => {
       askConfirm({
@@ -457,9 +477,18 @@ export default function PhotoView(): JSX.Element {
             </button>
           </div>
 
-          {/* face chips — circular crops tucked in the corner, Apple Photos style */}
-          {!isVideo && (
-            <div className={`viewer-face-dock${filmstripVisible ? ' with-filmstrip' : ''}`}>
+          {/* Face chips — circular crops tucked into the photo's own bottom-left
+              corner. Hidden while zoomed: the chips don't scale with the photo,
+              so at 4x they'd sit over whatever part of the image happens to be
+              under them and no longer point at anything. */}
+          {!isVideo && !zoomed && imageInStage && (
+            <div
+              className="viewer-face-dock"
+              style={{
+                left: imageInStage.left + 12,
+                top: imageInStage.top + imageInStage.height - 12
+              }}
+            >
               <FaceChips
                 photo={photo}
                 faces={faces}

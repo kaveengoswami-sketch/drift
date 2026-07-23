@@ -236,16 +236,13 @@ video.viewer-media {
   }
 }
 
-/* Face chips dock — bottom-left corner, clear of the centred toolbar. */
+/* Face chips dock. left/top come from the measured photo rect (see PhotoView),
+   so the strip rides the picture's own bottom-left corner at any aspect ratio
+   or window size; translateY pulls it back inside that edge. */
 .viewer-face-dock {
   position: absolute;
-  left: 14px;
-  bottom: 14px;
   z-index: 6;
-  transition: bottom 0.18s ease;
-}
-.viewer-face-dock.with-filmstrip {
-  bottom: 76px;
+  transform: translateY(-100%);
 }
 
 .viewer-face-strip {
