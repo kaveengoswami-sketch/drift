@@ -128,8 +128,12 @@ function buildWorker(win: BrowserWindow): Worker {
 
       if (res.ok && res.width && res.height && res.mode === 'shrink') {
         try {
+          // No `AND width = 0` guard: the worker measures the original with sharp and
+          // applies EXIF orientation, so its numbers are authoritative and this
+          // self-heals rows the EXIF path got wrong. The worker only reports dims when
+          // it decoded the real file, never for the embedded-preview fallback.
           getDb()
-            .prepare('UPDATE photos SET width = ?, height = ? WHERE id = ? AND width = 0')
+            .prepare('UPDATE photos SET width = ?, height = ? WHERE id = ?')
             .run(res.width, res.height, res.id)
         } catch { /* non-fatal */ }
       }

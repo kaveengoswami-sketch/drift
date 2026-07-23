@@ -73,14 +73,19 @@ async function extractDateTaken(filePath: string, ext: string, fallback: number)
   try {
     if (!VIDEO_EXTS.has(ext) && ext !== '.svg' && ext !== '.gif' && ext !== '.bmp' && ext !== '.ico') {
       const meta = await exifr.parse(filePath, {
+        // translateValues: false is load-bearing. By default exifr maps Orientation
+        // to a human string ('Rotate 270 CW'), so the numeric >= 5 test below silently
+        // never fired and every rotated photo was stored with width/height transposed.
+        // Dates are revived by reviveValues, which this does not affect.
+        translateValues: false,
         pick: ['DateTimeOriginal', 'CreateDate', 'ExifImageWidth', 'ExifImageHeight', 'ImageWidth', 'ImageHeight', 'Orientation']
       })
       if (meta) {
         const dt: Date | undefined = meta.DateTimeOriginal || meta.CreateDate
         let w = meta.ExifImageWidth || meta.ImageWidth || 0
         let h = meta.ExifImageHeight || meta.ImageHeight || 0
-        // orientation 5-8 = rotated 90/270 -> swap
-        if (meta.Orientation && meta.Orientation >= 5) [w, h] = [h, w]
+        // orientation 5-8 = rotated 90/270 -> swap, so stored dims are post-rotation
+        if (typeof meta.Orientation === 'number' && meta.Orientation >= 5) [w, h] = [h, w]
         return { date: dt instanceof Date && !isNaN(dt.getTime()) ? dt.getTime() : fallback, width: w, height: h }
       }
     }
