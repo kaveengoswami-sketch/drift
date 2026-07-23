@@ -4,6 +4,7 @@ import App from './App'
 import { initLibraryEvents } from './stores/libraryStore'
 import { initThumbEvents } from './lib/thumbEvents'
 import './styles/global.css'
+import './styles/theme-cafe.css'
 
 initLibraryEvents()
 initThumbEvents()

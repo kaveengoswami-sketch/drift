@@ -56,3 +56,25 @@ export function applyAccent(color: string): void {
   root.style.setProperty('--accent-soft', color + '38')
   root.style.setProperty('--accent-text', luminance(color) > 0.4 ? '#1A1206' : '#ffffff')
 }
+
+/**
+ * Apply the accent for a given theme.
+ *
+ * The café theme fixes its own accent — fern green — in theme-cafe.css, and
+ * that is the whole of its identity rather than a preference. Two reasons it
+ * cannot go through the picker: applyAccent writes inline properties, which
+ * outrank any stylesheet and would silently defeat the theme; and every swatch
+ * in ACCENTS is a light hue chosen to carry on graphite, so all six land
+ * somewhere between 1.5:1 and 2.5:1 on cream. Clearing the inline properties
+ * hands the accent back to the stylesheet.
+ */
+export function applyThemeAccent(theme: string, savedAccent: string | undefined): void {
+  if (theme === 'cafe') {
+    const root = document.documentElement
+    root.style.removeProperty('--accent')
+    root.style.removeProperty('--accent-soft')
+    root.style.removeProperty('--accent-text')
+    return
+  }
+  applyAccent(resolveAccent(savedAccent))
+}

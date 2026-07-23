@@ -114,7 +114,7 @@
 
 /* Light mode overrides */
 @media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) {
+  :root:not([data-theme="dark"]):not([data-theme="cafe"]) {
     --bg-content:      #f8f8fa;
     --bg-sidebar:      rgba(242, 242, 247, 0.65);
     --bg-toolbar:      rgba(245, 245, 249, 0.70);

@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { Photo, SourceFolder, Album, Settings, ScanProgress, LibraryQuery } from '@shared/types'
 import { DEFAULT_SETTINGS } from '@shared/types'
-import { applyAccent, resolveAccent } from '@/lib/accent'
+import { applyThemeAccent } from '@/lib/accent'
 
 interface SubfolderInfo {
   folderId: number
@@ -200,7 +200,7 @@ export function initLibraryEvents(): void {
   ]).then(([settings]) => {
     useLibrary.setState({ settings, initialized: true })
     document.documentElement.dataset.theme = settings.theme
-    applyAccent(resolveAccent(settings.accentColor))
+    applyThemeAccent(settings.theme, settings.accentColor)
   }).catch(() => {
     useLibrary.setState({ initialized: true })
   })

@@ -1,5 +1,3 @@
-// Generates D:\Drift\build\icon.ico (+ icon.png) for Drift using the official
-// Variation 4 (Warm Cedar & Sunset Gradient Polaroid) logo artwork.
 const sharp = require('sharp')
 const fs = require('fs')
 const path = require('path')
@@ -29,16 +27,12 @@ function packIco(imgs) {
   return Buffer.concat([header, dir, ...imgs.map((i) => i.data)])
 }
 
-async function main() {
+async function convert(inputPath) {
   fs.mkdirSync(OUT, { recursive: true })
-  const sourcePath = path.join(OUT, 'icon.png')
-  if (!fs.existsSync(sourcePath)) {
-    console.error('icon.png not found in build directory')
-    process.exit(1)
-  }
-
-  const baseImg = sharp(sourcePath)
   const imgs = []
+  
+  // Resize input image to 1024x1024 base PNG with sharp, applying a subtle corner rounding or clean crop if needed
+  const baseImg = sharp(inputPath)
 
   for (const size of SIZES) {
     const data = await baseImg
@@ -48,13 +42,26 @@ async function main() {
       .toBuffer()
     imgs.push({ size, data })
   }
-
+  
   const ico = packIco(imgs)
   fs.writeFileSync(path.join(OUT, 'icon.ico'), ico)
-  console.log('icon.ico bytes:', ico.length, '| sizes:', imgs.map((i) => `${i.size}:${i.data.length}`).join(' '))
+  
+  await baseImg
+    .clone()
+    .resize(512, 512)
+    .png()
+    .toFile(path.join(OUT, 'icon.png'))
+    
+  console.log('Successfully updated icon.ico & icon.png from', inputPath)
 }
 
-main().catch((e) => {
-  console.error(e)
+const inputImage = process.argv[2]
+if (!inputImage) {
+  console.error('Please specify input image path')
+  process.exit(1)
+}
+
+convert(inputImage).catch(err => {
+  console.error(err)
   process.exit(1)
 })

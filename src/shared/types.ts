@@ -78,7 +78,7 @@ export type ViewKey =
   | 'person'
 
 export interface Settings {
-  theme: 'dark' | 'light'
+  theme: 'dark' | 'light' | 'cafe'
   accentColor: string
   trashDays: number
   slideshowInterval: number

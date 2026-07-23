@@ -1,0 +1,409 @@
+/* Drift — café theme
+   ====================================================================
+   A second visual identity, selected with data-theme="cafe". The
+   darkroom theme in global.css is untouched and stays the default;
+   switching back is one click in Settings.
+
+   Where the darkroom theme is a safelight in a dark room, this one is
+   the corner table of a café: menu card stock, a typewriter someone
+   still uses, and a plant in the window. Three rules hold it together.
+
+   1. Paper is a substrate, not a background colour. There are four
+      stocks, and photographs sit ON the paper in a print mount rather
+      than being cut into it. Every glass surface becomes opaque paper —
+      the blur tokens go to 0, because paper is not glass.
+
+   2. The typewriter is the labelling voice, and it takes more of the
+      interface than it does in the darkroom theme: view titles and date
+      headers are set in --font-label too, uppercase and tracked, like a
+      menu board. Cascadia Mono ships with Windows 11 and Consolas with
+      everything older, so this still resolves offline with no bundled
+      font and no network request.
+
+   3. The jungle is a green, not a graphic. Fern carries every active,
+      selected and affirmative state. The one literal plant is a
+      monstera watermark on the sidebar, drawn as a data URI so it costs
+      no markup and disappears completely on the other themes.
+
+   Signature device: the dot leader. Sidebar rows and grid date headers
+   run a dotted rule from label to count, the way a menu runs its
+   prices. It only appears where there is actually a number at the end
+   of it, which is what keeps it a device rather than a texture.
+
+   ONE DELIBERATE EXCEPTION. The photo viewer, the slideshow and the
+   editor stay dark on this theme. Cream behind a photograph shifts how
+   the photograph reads, and those three surfaces are where you actually
+   judge an image. The grid honours the paper — every thumbnail gets a
+   mount so it reads as laid on the table — but full-screen review does
+   not. Their hardcoded dark overlays are therefore correct as they
+   stand and are intentionally not overridden below.
+   ==================================================================== */
+
+:root[data-theme="cafe"] {
+  /* ---- paper stocks ---- */
+  --bg-content:      #F4EDDF;  /* the content field — menu card */
+  --bg-sidebar:      #EDE4D2;  /* chrome — the table under it */
+  --bg-toolbar:      #EDE4D2;
+  --bg-modal:        #F4EDDF;
+  --bg-elevated:     #FCF8EF;  /* print mount, raised surfaces */
+  --bg-hover:        rgba(43, 39, 33, 0.05);
+  --bg-active:       rgba(43, 39, 33, 0.09);
+  --bg-selected:     rgba(62, 92, 67, 0.12);
+
+  /* ---- glass becomes paper ----
+     Same token names, so every chrome surface converts at once; the
+     blur radii go to zero and the fills go opaque. */
+  --glass-bg-modal:    #F4EDDF;
+  --glass-bg-sidebar:  #EDE4D2;
+  --glass-bg-toolbar:  #EDE4D2;
+  /* Consumed by .toast but defined by no theme, so toasts currently
+     render with no fill at all. Defined here so café toasts are solid;
+     left alone elsewhere so this cannot disturb the darkroom look. */
+  --glass-bg-panel:    #FCF8EF;
+  /* Deeper than the darkroom scrim: that one leans on an 8px backdrop
+     blur to quiet what is behind a dialog, and this theme removes the
+     blur, so the scrim has to do the whole job on its own. */
+  --glass-scrim:       rgba(23, 19, 15, 0.58);
+  --glass-blur-modal:  0px;
+  --glass-blur-chrome: 0px;
+  --glass-saturate:    100%;
+  --glass-border-color: rgba(43, 39, 33, 0.16);
+  --glass-highlight:   none;
+  --modal-shadow:      0 24px 60px -20px rgba(43, 39, 33, 0.42), 0 2px 0 rgba(43, 39, 33, 0.05);
+
+  /* ---- ink ----
+     The floor is set against --bg-sidebar, the darker of the two stocks
+     the label voice lands on: --text-tertiary is 4.7:1 there and 5.1:1
+     on --bg-content, so 10-11px uppercase labels still pass AA. */
+  --text-primary:    #2B2721;  /* 12.7:1 on --bg-content */
+  --text-secondary:  #5A5145;  /*  6.7:1 */
+  --text-tertiary:   #6E6349;
+
+  /* ---- accent: fern ----
+     6.4:1 on --bg-content. The whole of the jungle is carried here
+     rather than in ornament. --accent-text is paper rather than white:
+     it sits on fern at 7.4:1 and keeps the palette closed. */
+  --accent:          #3E5C43;
+  --accent-hover:    #334C38;
+  --accent-text:     #F4EDDF;
+
+  /* ---- lines ---- */
+  --separator:       rgba(43, 39, 33, 0.14);
+  --border-strong:   rgba(43, 39, 33, 0.22);
+
+  /* ---- radii ----
+     Paper creases; it does not have app chrome. Everything tightens,
+     but stops short of the zero-radius broadsheet look. */
+  --r-sm: 2px;
+  --r-md: 3px;
+  --r-lg: 5px;
+  --r-pill: 999px;
+
+  /* ---- typography ----
+     --font stays the platform UI face: filenames and paths still have
+     to survive 12px, and no webfont may be fetched. The café voice is
+     carried by --font-label, widened, plus the scoped rules below that
+     hand it the titles and the date headers as well. */
+  --font-display: var(--font-label);
+  --label-track: 0.14em;
+
+  /* ---- café-only additions ---- */
+  --cafe-card:   #FCF8EF;                 /* print mount */
+  --cafe-stamp:  #A33B28;                 /* rubber stamp — destructive only, 5.6:1 */
+  --cafe-leader: rgba(43, 39, 33, 0.30);  /* the dot leader */
+
+  /* ---- legacy aliases ----
+     global.css still routes Editor, FirstRun, InfoPanel, Settings,
+     PhotoView and Slideshow through these. They have to be remapped or
+     those screens lose every colour on this theme. */
+  --shadow:       0 20px 48px -18px rgba(43, 39, 33, 0.40);
+  --text-1:       var(--text-primary);
+  --text-2:       var(--text-secondary);
+  --text-3:       var(--text-tertiary);
+  --bg-2:         var(--bg-elevated);
+  --hover:        var(--bg-hover);
+  --active:       var(--bg-active);
+  --glass-border: var(--border-strong);
+  --accent-soft:  rgba(62, 92, 67, 0.18);
+}
+
+/* ====================================================================
+   Structural overrides
+
+   Everything above re-skins by token alone. What follows is the part
+   the token layer cannot express: the paper structure, the widened
+   label voice, the dot leader, and the handful of colour literals in
+   the component sheets that no token reaches.
+   ==================================================================== */
+
+/* ---- scrollbars ----------------------------------------------------
+   global.css sets a neutral grey literal, which reads cold and blueish
+   against cream. */
+[data-theme="cafe"] ::-webkit-scrollbar-thumb {
+  background: rgba(43, 39, 33, 0.20);
+}
+[data-theme="cafe"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(43, 39, 33, 0.34);
+}
+
+/* common.css frosts the modal scrim with a hardcoded blur that no token
+   reaches. Paper is not glass — the scrim just darkens. */
+[data-theme="cafe"] .dlg-backdrop {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* The dialog's section headers are already in the label voice; its own
+   title was left in the UI face and read as a different system. */
+[data-theme="cafe"] .settings-header h2 {
+  font-family: var(--font-label);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* ---- toolbar -------------------------------------------------------
+   The view title takes the label voice and becomes the menu board. */
+[data-theme="cafe"] .tb-title {
+  font-family: var(--font-label);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+[data-theme="cafe"] .tb-subtitle {
+  font-family: var(--font-label);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The segmented control loses its pill: paper folds at a crease. */
+[data-theme="cafe"] .tb-segments {
+  border-radius: var(--r-md);
+}
+[data-theme="cafe"] .tb-segment {
+  border-radius: var(--r-sm);
+  font-family: var(--font-label);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 5px 13px;
+}
+[data-theme="cafe"] .tb-segment.selected {
+  background: var(--bg-elevated);
+  box-shadow: 0 1px 0 rgba(43, 39, 33, 0.10);
+}
+
+/* ---- sidebar -------------------------------------------------------
+   The monstera. Carried as a background image so it needs no markup,
+   costs nothing on the other themes, and always paints behind content
+   rather than fighting it for stacking order. The fill is fern
+   pre-blended into --bg-sidebar at 7%, so no opacity is involved and it
+   can never wash over a label. */
+[data-theme="cafe"] .sidebar {
+  background-color: var(--bg-sidebar);
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20200%20260%22%3E%3Cdefs%3E%3Cmask%20id%3D%22m%22%3E%3Cpath%20d%3D%22M%20100%20232%20C%20151.84%20228%2C%20172%20186%2C%20172%20136%20C%20172%2082%2C%20139.6%2052%2C%20100%2018%20C%2060.4%2052%2C%2028%2082%2C%2028%20136%20C%2028%20186%2C%2048.16%20228%2C%20100%20232%20Z%22%20fill%3D%22%23fff%22%2F%3E%3Cg%20fill%3D%22%23000%22%3E%3Cpath%20d%3D%22M%20118%20193.48%20C%20142%20197.48%2C%20168%20201.98%2C%20204%20203.48%20L%20204%20219.48%20C%20164%20212.2%2C%20138%20201.98%2C%20118%20199.48%20Z%22%2F%3E%3Cpath%20d%3D%22M%20118%20146.4%20C%20142%20150.4%2C%20168%20154.9%2C%20204%20156.4%20L%20204%20172.4%20C%20164%20165.12%2C%20138%20154.9%2C%20118%20152.4%20Z%22%2F%3E%3Cpath%20d%3D%22M%20118%2099.32%20C%20142%20103.32%2C%20168%20107.82%2C%20204%20109.32%20L%20204%20125.32%20C%20164%20118.04%2C%20138%20107.82%2C%20118%20105.32%20Z%22%2F%3E%3Cpath%20d%3D%22M%20118%2052.24%20C%20142%2056.24%2C%20168%2060.74%2C%20204%2062.24%20L%20204%2078.24%20C%20164%2070.96%2C%20138%2060.74%2C%20118%2058.24%20Z%22%2F%3E%3Cpath%20d%3D%22M%2082%20193.48%20C%2058%20197.48%2C%2032%20201.98%2C%20-4%20203.48%20L%20-4%20219.48%20C%2036%20212.2%2C%2062%20201.98%2C%2082%20199.48%20Z%22%2F%3E%3Cpath%20d%3D%22M%2082%20146.4%20C%2058%20150.4%2C%2032%20154.9%2C%20-4%20156.4%20L%20-4%20172.4%20C%2036%20165.12%2C%2062%20154.9%2C%2082%20152.4%20Z%22%2F%3E%3Cpath%20d%3D%22M%2082%2099.32%20C%2058%20103.32%2C%2032%20107.82%2C%20-4%20109.32%20L%20-4%20125.32%20C%2036%20118.04%2C%2062%20107.82%2C%2082%20105.32%20Z%22%2F%3E%3Cpath%20d%3D%22M%2082%2052.24%20C%2058%2056.24%2C%2032%2060.74%2C%20-4%2062.24%20L%20-4%2078.24%20C%2036%2070.96%2C%2062%2060.74%2C%2082%2058.24%20Z%22%2F%3E%3C%2Fg%3E%3C%2Fmask%3E%3C%2Fdefs%3E%3Cpath%20d%3D%22M%20100%20258%20C%20100%20240%2C%20100%20236%2C%20100%20224%22%20fill%3D%22none%22%20stroke%3D%22%23e1dac8%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%2F%3E%3Crect%20width%3D%22200%22%20height%3D%22260%22%20fill%3D%22%23e1dac8%22%20mask%3D%22url%28%23m%29%22%2F%3E%3C%2Fsvg%3E");
+  background-repeat: no-repeat;
+  background-position: -54px calc(100% + 26px);
+  background-size: 232px 302px;
+}
+
+[data-theme="cafe"] .sb-section-title {
+  letter-spacing: 0.18em;
+}
+
+/* The dot leader. .sb-count grows to span the gap and draws the rule in
+   its own ::before, so no extra element is needed and rows that carry
+   no count — the library views, the folders — correctly get no leader. */
+[data-theme="cafe"] .sb-label {
+  flex: 0 1 auto;
+}
+[data-theme="cafe"] .sb-count {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-left: 0;
+  font-family: var(--font-label);
+  font-variant-numeric: tabular-nums;
+}
+[data-theme="cafe"] .sb-count::before {
+  content: "";
+  flex: 1 1 auto;
+  align-self: flex-end;
+  margin: 0 8px 5px;
+  border-bottom: 1px dotted var(--cafe-leader);
+}
+
+[data-theme="cafe"] .sb-item.active,
+[data-theme="cafe"] .sb-item.active .sb-count {
+  color: var(--accent);
+}
+[data-theme="cafe"] .sb-item.active .sb-count::before {
+  border-bottom-color: rgba(62, 92, 67, 0.38);
+}
+
+[data-theme="cafe"] .sb-empty {
+  font-style: normal;
+  font-family: var(--font-label);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ---- grid date headers ---------------------------------------------
+   Stacked label-over-subtitle becomes a single menu line: the date, a
+   dotted rule, then the count. The header's height is reserved by the
+   virtual scroller, so the row simply sits at the bottom of its band
+   and no layout maths is disturbed. */
+[data-theme="cafe"] .grid-header {
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: 0;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+[data-theme="cafe"] .grid-header-label {
+  font-family: var(--font-label);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  line-height: 1.3;
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+[data-theme="cafe"] .grid-header-sub {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+[data-theme="cafe"] .grid-header-sub::before {
+  content: "";
+  flex: 1 1 auto;
+  align-self: flex-end;
+  margin: 0 10px 5px;
+  border-bottom: 1px dotted var(--cafe-leader);
+}
+
+/* ---- the print mount -----------------------------------------------
+   The tile keeps the exact box the virtual scroller hands it. Padding
+   sits inside the border box, so the thumbnail simply insets and the
+   card shows through as a mount around it — no layout maths touched. */
+[data-theme="cafe"] .tile {
+  background: var(--cafe-card);
+  padding: 5px;
+  border-radius: var(--r-sm);
+  box-shadow: 0 1px 0 rgba(43, 39, 33, 0.05), 0 6px 14px -10px rgba(43, 39, 33, 0.35);
+}
+[data-theme="cafe"] .tile-placeholder {
+  background: var(--bg-hover);
+}
+/* Selected: the mount takes the fern wash and the rule, so the
+   photograph itself is never tinted — only the paper under it. */
+[data-theme="cafe"] .tile.selected {
+  outline-width: 2px;
+  outline-offset: -2px;
+  background: var(--accent-soft);
+}
+/* Overlays step in to clear the mount. */
+[data-theme="cafe"] .tile-check {
+  top: 10px;
+  right: 10px;
+  box-shadow: 0 0 0 1.5px rgba(43, 39, 33, 0.22);
+}
+[data-theme="cafe"] .tile-heart {
+  bottom: 10px;
+  left: 10px;
+}
+/* The heart's colour is an SVG presentation attribute, which CSS
+   outranks — no !important needed here. */
+[data-theme="cafe"] .tile-heart.is-fav svg {
+  fill: var(--cafe-stamp);
+}
+/* The duration chip sits ON the photograph, not on the paper, so it
+   stays a dark chip. Only the blur goes, to match the theme. */
+[data-theme="cafe"] .tile-video-badge {
+  bottom: 10px;
+  right: 10px;
+  background: rgba(23, 19, 15, 0.62);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+/* Grid.css hardcodes an iOS-blue fill here that no token reaches. */
+[data-theme="cafe"] .rubber-band {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* Grid.tsx sets this button's colours as inline styles, which only
+   !important can outrank. White on cream would be invisible. */
+[data-theme="cafe"] .grid-empty-clear {
+  background: var(--bg-hover) !important;
+  border-color: var(--separator) !important;
+  color: var(--text-primary) !important;
+}
+
+/* ---- the rubber stamp ----------------------------------------------
+   Destructive affordances only, nowhere else. The literals these
+   replace are all light reds picked to carry on a dark surface; on
+   cream they fail contrast and read pink. */
+[data-theme="cafe"] .ctx-item.danger,
+[data-theme="cafe"] .settings-remove {
+  color: var(--cafe-stamp);
+}
+[data-theme="cafe"] .ctx-item.danger:hover {
+  background: var(--cafe-stamp);
+  color: #F9F1E8;
+}
+[data-theme="cafe"] .editor-btn.primary.danger {
+  background: var(--cafe-stamp);
+}
+[data-theme="cafe"] .toast-error {
+  border-color: rgba(163, 59, 40, 0.50);
+  box-shadow: 0 10px 26px -12px rgba(163, 59, 40, 0.35);
+}
+[data-theme="cafe"] .people-scan-error {
+  border-color: rgba(163, 59, 40, 0.45);
+  background: rgba(163, 59, 40, 0.10);
+}
+
+/* ---- warm shadows --------------------------------------------------
+   Neutral black shadows go grey and dead on cream. */
+[data-theme="cafe"] .toast {
+  box-shadow: 0 12px 28px -14px rgba(43, 39, 33, 0.40);
+}
+/* The People view already frames each face as a proof print on a mount, so
+   it needs no restructuring here — only its shadows rewarmed. The inset
+   hairline is kept in every state; just the cast shadow changes. */
+[data-theme="cafe"] .person-print {
+  box-shadow:
+    inset 0 0 0 1px var(--border-strong),
+    0 1px 2px rgba(43, 39, 33, 0.14);
+}
+[data-theme="cafe"] .person-print:hover {
+  box-shadow:
+    inset 0 0 0 1px var(--border-strong),
+    0 6px 16px -6px rgba(43, 39, 33, 0.32);
+}
+[data-theme="cafe"] .person-card.selected .person-print {
+  box-shadow:
+    inset 0 0 0 2px var(--accent),
+    0 6px 16px -6px rgba(43, 39, 33, 0.32);
+}
+[data-theme="cafe"] .person-card.drag-over .person-print {
+  box-shadow:
+    inset 0 0 0 2px var(--accent),
+    0 8px 20px -7px rgba(43, 39, 33, 0.38);
+}
+[data-theme="cafe"] .accent-dot {
+  box-shadow: 0 1px 3px rgba(43, 39, 33, 0.22);
+}

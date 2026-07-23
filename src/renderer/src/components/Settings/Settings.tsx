@@ -6,7 +6,7 @@ import { useModalFocus } from '@/lib/useModalFocus'
 import './Settings.css'
 
 import type { FaceScanProgress } from '@shared/types'
-import { ACCENTS, applyAccent, resolveAccent } from '@/lib/accent'
+import { ACCENTS, applyAccent, applyThemeAccent, resolveAccent } from '@/lib/accent'
 
 
 const TRASH_OPTIONS = [7, 14, 30, 60, 90, 0]
@@ -33,9 +33,13 @@ export default function Settings(): JSX.Element {
 
   const dlgRef = useModalFocus<HTMLDivElement>()
 
-  const setTheme = (theme: 'dark' | 'light'): void => {
+  const setTheme = (theme: 'dark' | 'light' | 'cafe'): void => {
     setSettings({ theme })
     document.documentElement.dataset.theme = theme
+    // The accent is per-theme: café supplies its own and the others read the
+    // picker. Without this the previous theme's inline accent survives the
+    // switch and outranks the new theme's stylesheet.
+    applyThemeAccent(theme, settings.accentColor)
   }
 
   const setAccent = (accentColor: string): void => {
@@ -104,23 +108,31 @@ export default function Settings(): JSX.Element {
               <div className="seg">
                 <button className={settings.theme === 'dark' ? 'active' : ''} onClick={() => setTheme('dark')}>Dark</button>
                 <button className={settings.theme === 'light' ? 'active' : ''} onClick={() => setTheme('light')}>Light</button>
+                <button className={settings.theme === 'cafe' ? 'active' : ''} onClick={() => setTheme('cafe')}>Café</button>
               </div>
             </div>
-            <div className="settings-row">
-              <span>Accent</span>
-              <div className="accent-row">
-                {ACCENTS.map((a) => (
-                  <button
-                    key={a.value}
-                    className={`accent-dot ${resolveAccent(settings.accentColor) === a.value ? 'active' : ''}`}
-                    style={{ background: a.value }}
-                    title={a.name}
-                    aria-label={a.name}
-                    onClick={() => setAccent(a.value)}
-                  />
-                ))}
+            {settings.theme === 'cafe' ? (
+              <div className="settings-row">
+                <span>Accent</span>
+                <span className="settings-muted">Café sets its own — fern green</span>
               </div>
-            </div>
+            ) : (
+              <div className="settings-row">
+                <span>Accent</span>
+                <div className="accent-row">
+                  {ACCENTS.map((a) => (
+                    <button
+                      key={a.value}
+                      className={`accent-dot ${resolveAccent(settings.accentColor) === a.value ? 'active' : ''}`}
+                      style={{ background: a.value }}
+                      title={a.name}
+                      aria-label={a.name}
+                      onClick={() => setAccent(a.value)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="settings-row">
               <span>Animations</span>
               <div className="seg">

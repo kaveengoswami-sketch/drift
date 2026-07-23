@@ -24,9 +24,9 @@ build tools on this machine, so a rebuild fails the whole package step.
 The app icon is `build/icon.ico`. electron-builder picks it up by convention —
 without it the build logs `default Electron icon is used` and the installed app
 shows a generic Electron icon in the Start menu and taskbar. Regenerate it with
-`node build/make-icon.cjs`, which renders inline SVG through sharp and packs the
-ICO by hand (7 sizes, 16→256; the artwork drops detail at ≤32px so the glyph
-still reads). `build/` is excluded from the packaged app.
+`npm run icon` (or `python build/make_icon.py`), which renders the official
+Variation 4 (Warm Cedar & Sunset Gradient Polaroid) logo and packs multi-res ICO
+and PNG assets. `build/` is excluded from the packaged app.
 
 #### The winCodeSign symlink failure
 

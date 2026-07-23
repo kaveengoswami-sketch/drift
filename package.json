@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "electron-vite dev -w",
     "build": "electron-vite build",
+    "icon": "python build/make_icon.py",
     "start": "electron-vite preview",
     "dist": "electron-vite build && electron-builder"
   },
