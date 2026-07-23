@@ -10,15 +10,25 @@ export interface ModelPaths {
 }
 
 const DETECTOR_FILENAME = 'scrfd_500m_kps.onnx'
-const RECOGNIZER_FILENAME = 'w600k_mbf.onnx'
+const RECOGNIZER_FILENAME = 'w600k_r50.onnx'
 
-// InsightFace "buffalo_s" pack, mirrored by the Immich project: SCRFD-500M
-// (detection, 2.5MB) + w600k_mbf / MobileFaceNet ArcFace (recognition, 13.6MB).
-// The onnx-community/* URLs these replaced answered HTTP 401 — every scan died
-// inside ensureModels() and the People view silently fell back to its empty
-// state, which is why "Scan for People" looked like it did nothing at all.
+// Detection stays SCRFD-500M from InsightFace "buffalo_s" (2.5MB) — it is fast
+// and its box quality is not the bottleneck.
+//
+// Recognition is w600k_r50 from "buffalo_l" (ResNet50 ArcFace, ~166MB), not the
+// w600k_mbf MobileFaceNet it replaced. MobileFaceNet's same-person and
+// different-person score distributions overlap heavily on same-demographic,
+// same-lighting subjects — a graduation shoot is close to its worst case — which
+// caps how much a confirmed name can be trusted to find more of that person
+// without dragging in strangers. Both emit 512-d embeddings and take the same
+// 112x112 ArcFace preprocessing, so this is a drop-in swap.
+//
+// Both mirrored by the Immich project. The onnx-community/* URLs these replaced
+// answered HTTP 401 — every scan died inside ensureModels() and the People view
+// silently fell back to its empty state, which is why "Scan for People" looked
+// like it did nothing at all.
 const DETECTOR_URL = 'https://huggingface.co/immich-app/buffalo_s/resolve/main/detection/model.onnx'
-const RECOGNIZER_URL = 'https://huggingface.co/immich-app/buffalo_s/resolve/main/recognition/model.onnx'
+const RECOGNIZER_URL = 'https://huggingface.co/immich-app/buffalo_l/resolve/main/recognition/model.onnx'
 
 /** Sanity floor so a truncated download or HTML error body is never cached. */
 const MIN_MODEL_BYTES = 1_000_000

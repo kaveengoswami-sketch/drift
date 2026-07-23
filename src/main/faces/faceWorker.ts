@@ -1,6 +1,7 @@
 import { parentPort } from 'worker_threads'
 import sharp from 'sharp'
 import type * as OrtType from 'onnxruntime-node'
+import { similarityTransform, warpToTemplate, ALIGN_SIZE } from './align'
 
 sharp.cache(false)
 sharp.concurrency(1)
@@ -72,7 +73,10 @@ interface RawBox {
   x2: number
   y2: number
   conf: number
+  /** 5 landmarks (eyes, nose, mouth corners) in detector-input pixels. */
+  kps: Array<[number, number]>
 }
+
 
 /** Greedy non-maximum suppression — every stride fires on the same face. */
 function nms(boxes: RawBox[]): RawBox[] {
@@ -164,6 +168,7 @@ export async function processPhoto(job: ScanJob): Promise<ScanResult> {
       const stride = DET_STRIDES[si]
       const scores = outputs[names[si]]?.data as Float32Array | undefined
       const deltas = outputs[names[si + DET_STRIDES.length]]?.data as Float32Array | undefined
+      const kpsOut = outputs[names[si + DET_STRIDES.length * 2]]?.data as Float32Array | undefined
       if (!scores || !deltas) continue
 
       const grid = DET_INPUT / stride
@@ -176,19 +181,29 @@ export async function processPhoto(job: ScanJob): Promise<ScanResult> {
             const cx = col * stride
             const cy = row * stride
             const o = idx * 4
+            // Landmarks are per-anchor offsets from the same anchor centre,
+            // in stride units, exactly like the box distances.
+            const kps: Array<[number, number]> = []
+            if (kpsOut) {
+              const k = idx * 10
+              for (let pt = 0; pt < 5; pt++) {
+                kps.push([cx + kpsOut[k + pt * 2] * stride, cy + kpsOut[k + pt * 2 + 1] * stride])
+              }
+            }
             raw.push({
               x1: cx - deltas[o] * stride,
               y1: cy - deltas[o + 1] * stride,
               x2: cx + deltas[o + 2] * stride,
               y2: cy + deltas[o + 3] * stride,
-              conf
+              conf,
+              kps
             })
           }
         }
       }
     }
 
-    const detectedBoxes: Array<{ x: number; y: number; w: number; h: number; conf: number }> = []
+    const detectedBoxes: Array<{ x: number; y: number; w: number; h: number; conf: number; kps: Array<[number, number]> }> = []
     for (const b of nms(raw)) {
       // Back to full-resolution pixels, then to 0..1 fractions for storage.
       const x = Math.max(0, b.x1 / detScale)
@@ -198,28 +213,61 @@ export async function processPhoto(job: ScanJob): Promise<ScanResult> {
       if (!Number.isFinite(x) || !Number.isFinite(y) || w < 16 || h < 16) continue
       const aspectRatio = w / h
       if (aspectRatio < 0.4 || aspectRatio > 1.5) continue
-      detectedBoxes.push({ x: x / origW, y: y / origH, w: w / origW, h: h / origH, conf: b.conf })
+      // Landmarks back to full-resolution pixels for the alignment transform.
+      const kps = b.kps.map(([kx, ky]) => [kx / detScale, ky / detScale] as [number, number])
+      detectedBoxes.push({ x: x / origW, y: y / origH, w: w / origW, h: h / origH, conf: b.conf, kps })
     }
 
     const detectedFaces: DetectedFace[] = []
 
-    for (const box of detectedBoxes.slice(0, 20)) {
-      const marginX = box.w * 0.15
-      const marginY = box.h * 0.15
-      const left = Math.max(0, Math.floor((box.x - marginX) * origW))
-      const top = Math.max(0, Math.floor((box.y - marginY) * origH))
-      const cropW = Math.min(origW - left, Math.ceil((box.w + 2 * marginX) * origW))
-      const cropH = Math.min(origH - top, Math.ceil((box.h + 2 * marginY) * origH))
-
-      if (cropW < 10 || cropH < 10) continue
-
-      const faceBuf = await sharp(job.filePath, { failOn: 'none' })
+    // One full-resolution decode for the whole photo. The previous code ran a
+    // fresh sharp pipeline per face, re-decoding the JPEG every time, so this
+    // is also less work despite holding the raw buffer.
+    let fullRaw: { data: Buffer; width: number; height: number; channels: number } | null = null
+    if (detectedBoxes.length > 0) {
+      const decoded = await sharp(job.filePath, { failOn: 'none' })
         .rotate()
-        .extract({ left, top, width: cropW, height: cropH })
-        .resize(112, 112, { fit: 'fill' })
         .removeAlpha()
         .raw()
-        .toBuffer()
+        .toBuffer({ resolveWithObject: true })
+      fullRaw = {
+        data: decoded.data,
+        width: decoded.info.width,
+        height: decoded.info.height,
+        channels: decoded.info.channels
+      }
+    }
+
+    for (const box of detectedBoxes.slice(0, 20)) {
+      let faceBuf: Buffer | Uint8Array
+
+      if (box.kps.length === 5 && fullRaw) {
+        // Warp the five landmarks onto the ArcFace template — the crop the
+        // recogniser was actually trained on.
+        faceBuf = warpToTemplate(
+          fullRaw.data,
+          fullRaw.width,
+          fullRaw.height,
+          fullRaw.channels,
+          similarityTransform(box.kps)
+        )
+      } else {
+        // No landmarks: fall back to the padded box rather than drop the face.
+        const marginX = box.w * 0.15
+        const marginY = box.h * 0.15
+        const left = Math.max(0, Math.floor((box.x - marginX) * origW))
+        const top = Math.max(0, Math.floor((box.y - marginY) * origH))
+        const cropW = Math.min(origW - left, Math.ceil((box.w + 2 * marginX) * origW))
+        const cropH = Math.min(origH - top, Math.ceil((box.h + 2 * marginY) * origH))
+        if (cropW < 10 || cropH < 10) continue
+        faceBuf = await sharp(job.filePath, { failOn: 'none' })
+          .rotate()
+          .extract({ left, top, width: cropW, height: cropH })
+          .resize(ALIGN_SIZE, ALIGN_SIZE, { fit: 'fill' })
+          .removeAlpha()
+          .raw()
+          .toBuffer()
+      }
 
       const faceFloatData = new Float32Array(3 * 112 * 112)
       const faceChannelSize = 112 * 112
@@ -239,7 +287,12 @@ export async function processPhoto(job: ScanJob): Promise<ScanResult> {
 
       const firstOutputName = recognizer.outputNames[0]
       const embTensor = recOutputs[firstOutputName]
-      const rawEmb = embTensor.data as Float32Array
+      const rawEmb = embTensor?.data as Float32Array | undefined
+
+      // A face row without a usable embedding is worse than no row at all: it
+      // can never be clustered, and it used to crash the clusterer outright.
+      // Drop the face instead of storing a placeholder.
+      if (!rawEmb || rawEmb.length < 512) continue
 
       const emb512 = new Float32Array(512)
       for (let i = 0; i < Math.min(rawEmb.length, 512); i++) {

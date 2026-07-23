@@ -85,16 +85,19 @@ export interface Settings {
   animationsEnabled: boolean
   thumbnailQuality: 'standard' | 'high'
   firstRunComplete: boolean
+  /** Which recogniser/crop produced the stored embeddings. See FACE_EMBED_VERSION. */
+  faceEmbedVersion: number
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'dark',
-  accentColor: '#6c8cff',
+  accentColor: '#F09A4B',
   trashDays: 30,
   slideshowInterval: 5,
   animationsEnabled: true,
   thumbnailQuality: 'standard',
-  firstRunComplete: false
+  firstRunComplete: false,
+  faceEmbedVersion: 0
 }
 
 export interface PhotoMeta {
