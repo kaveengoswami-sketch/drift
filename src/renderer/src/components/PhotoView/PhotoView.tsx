@@ -118,18 +118,32 @@ export default function PhotoView(): JSX.Element {
     }
   }, [photo?.id])
 
-  // The media wrap fills the stage; the image is letterboxed inside it. Track the
-  // wrap so the hover ring can be placed on the image itself, not the wrap.
+  // The media wrap is inset inside the stage and the image is letterboxed inside
+  // *that*, so the ring needs the wrap's box to place a highlight on the photo.
+  //
+  // The wrap is measured by query rather than by ref. It's an AnimatePresence
+  // child under mode="popLayout", and popLayout clones the child to attach its
+  // own measuring ref — which discards any ref passed here, so `wrapRef` stays
+  // null forever and the ring silently never renders.
+  //
+  // offsetWidth/Height rather than getBoundingClientRect: the wrap carries a
+  // mount scale animation and the zoom/pan transform, and those change the
+  // visual rect while leaving the layout box (which is what the letterbox maths
+  // needs) untouched.
   useEffect(() => {
-    const el = wrapRef.current
-    if (!el) return
-    const ro = new ResizeObserver(([entry]) => {
-      const r = entry.contentRect
-      setWrapSize({ w: r.width, h: r.height })
-    })
-    ro.observe(el)
+    const stage = containerRef.current
+    if (!stage) return
+    const measure = (): void => {
+      const el = stage.querySelector('.viewer-media-wrap') as HTMLElement | null
+      if (el && el.offsetWidth > 0 && el.offsetHeight > 0) {
+        setWrapSize({ w: el.offsetWidth, h: el.offsetHeight })
+      }
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(stage)
     return () => ro.disconnect()
-  }, [photo?.id])
+  }, [photo?.id, infoPanelOpen, filmstripVisible])
 
   const hoveredFace = hoveredFaceId === null ? null : faces.find((f) => f.id === hoveredFaceId) ?? null
 
@@ -140,7 +154,6 @@ export default function PhotoView(): JSX.Element {
         : null,
     [wrapSize, photo?.width, photo?.height]
   )
-
   const detachFace = useCallback(
     (f: Face): void => {
       askConfirm({
