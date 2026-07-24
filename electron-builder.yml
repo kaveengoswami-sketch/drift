@@ -2,6 +2,8 @@ appId: com.kaveengoswami.drift
 productName: Drift
 copyright: Copyright © 2026 Kaveen Goswami
 
+publish: never
+
 directories:
   output: dist
   buildResources: build
