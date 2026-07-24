@@ -27,9 +27,9 @@ jobs:
         run: npm ci
 
       - name: Build and Package
-        run: npm run dist
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm run build
+          npx electron-builder --publish never
 
       - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@v2
