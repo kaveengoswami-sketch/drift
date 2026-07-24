@@ -6,12 +6,16 @@
   "author": "Kaveen Goswami",
   "license": "UNLICENSED",
   "private": true,
+  "bin": {
+    "drift": "./bin/drift.js"
+  },
   "scripts": {
     "dev": "electron-vite dev -w",
     "build": "electron-vite build",
     "icon": "python build/make_icon.py",
     "start": "electron-vite preview",
-    "dist": "electron-vite build && electron-builder"
+    "dist": "electron-vite build && electron-builder",
+    "install-app": "powershell -ExecutionPolicy Bypass -File ./install.ps1 -FromSource"
   },
   "dependencies": {
     "exifr": "^7.1.3",

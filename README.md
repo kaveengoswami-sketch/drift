@@ -2,6 +2,34 @@
 
 Apple Photos-inspired photo & video organizer for Windows. Electron + React + TypeScript.
 
+## 🚀 Installation
+
+### Option 1: Quick Install via PowerShell (One-Liner)
+
+Run the following command in PowerShell to automatically download/build and install Drift, register it in your Start Menu, and create the `drift` command:
+
+```powershell
+irm https://raw.githubusercontent.com/kaveengoswami-sketch/drift/main/install.ps1 | iex
+```
+
+### Option 2: Install from Git Source
+
+If you have cloned the repository, build and install directly with one command:
+
+```powershell
+git clone https://github.com/kaveengoswami-sketch/drift.git
+cd drift
+npm run install-app
+```
+
+### Option 3: Download Release Installer
+
+Download the latest Windows installer from [GitHub Releases](https://github.com/kaveengoswami-sketch/drift/releases/latest):
+
+1. Download **`Drift-0.1.0-x64.exe`** (or latest).
+2. Run the installer.
+3. Drift will be available in your Windows Start Menu and can be launched from terminal via `drift`.
+
 ## Dev
 
 ```
